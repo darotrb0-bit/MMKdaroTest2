@@ -63,9 +63,14 @@
     <div class="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8">
         
         <!-- Header -->
-        <div class="text-center mb-6">
+        <div class="text-center mb-6 relative">
             <h1 class="text-3xl md:text-4xl font-bold text-slate-800 title-font">ឧបករណ៍អានទិន្នន័យទីតាំង</h1>
-            <p class="text-indigo-600 text-lg md:text-xl mt-1">ស្រង់ទិន្នន័យ GPS (Geotag) ដែលបង្កប់ក្នុងរូបភាព</p>
+            <p class="text-indigo-600 text-lg md:text-xl mt-1">ស្រង់ទិន្នន័យ GPS និងប្រៀបធៀបទីតាំង</p>
+            <button id="reset-btn" class="hidden absolute top-0 right-0 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 4l16 16" />
+                </svg>
+            </button>
         </div>
 
         <!-- Image Upload Section -->
@@ -90,19 +95,32 @@
         <!-- Loader -->
         <div id="loader" class="hidden flex flex-col items-center justify-center mt-6">
             <div class="loader"></div>
-            <p class="text-slate-600 mt-3">កំពុងអានទិន្នន័យ EXIF...</p>
+            <p id="loader-text" class="text-slate-600 mt-3">កំពុងអានទិន្នន័យ EXIF...</p>
         </div>
         
         <!-- Results Section -->
         <div id="results" class="hidden mt-8">
-            <h2 class="text-2xl font-bold text-slate-800 text-center mb-4">លទ្ធផល Geotag</h2>
+            <h2 class="text-2xl font-bold text-slate-800 text-center mb-4">លទ្ធផលប្រៀបធៀប</h2>
             
-            <div class="bg-slate-50 rounded-lg p-4 mb-4 text-center">
-                <p class="text-lg text-slate-700"><strong class="text-slate-900">រយៈទទឹង (Latitude):</strong> <span id="latitude"></span></p>
-                <p class="text-lg text-slate-700 mt-1"><strong class="text-slate-900">រយៈបណ្តោយ (Longitude):</strong> <span id="longitude"></span></p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-50 rounded-lg p-4">
+                    <h3 class="font-bold text-lg text-center mb-2 text-indigo-600">ទីតាំងរូបភាព</h3>
+                    <p class="text-base text-slate-700"><strong class="text-slate-900">រយៈទទឹង:</strong> <span id="latitude"></span></p>
+                    <p class="text-base text-slate-700 mt-1"><strong class="text-slate-900">រយៈបណ្តោយ:</strong> <span id="longitude"></span></p>
+                </div>
+                <div class="bg-slate-50 rounded-lg p-4">
+                    <h3 class="font-bold text-lg text-center mb-2 text-green-600">ទីតាំងបច្ចុប្បន្ន</h3>
+                    <p class="text-base text-slate-700"><strong class="text-slate-900">រយៈទទឹង:</strong> <span id="user-latitude"></span></p>
+                    <p class="text-base text-slate-700 mt-1"><strong class="text-slate-900">រយៈបណ្តោយ:</strong> <span id="user-longitude"></span></p>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center mt-4">
+                <p class="text-lg font-bold text-blue-800">ចម្ងាយសរុប៖ <span id="distance" class="text-xl"></span></p>
+                <a id="directions-link" href="#" target="_blank" class="mt-2 inline-block bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">បង្ហាញផ្លូវនៅលើ Google Maps</a>
             </div>
             
-            <div class="w-full h-80 bg-slate-200 rounded-lg overflow-hidden shadow">
+            <div class="w-full h-80 bg-slate-200 rounded-lg overflow-hidden shadow mt-4">
                  <iframe
                     id="map-iframe"
                     width="100%"
@@ -130,30 +148,31 @@
         const imagePreviewContainer = document.getElementById('image-preview-container');
         const imagePreview = document.getElementById('image-preview');
         const loader = document.getElementById('loader');
+        const loaderText = document.getElementById('loader-text');
         const resultsDiv = document.getElementById('results');
         const messageBox = document.getElementById('message-box');
         const messageText = document.getElementById('message-text');
+        const resetBtn = document.getElementById('reset-btn');
         
         const latitudeSpan = document.getElementById('latitude');
         const longitudeSpan = document.getElementById('longitude');
+        const userLatitudeSpan = document.getElementById('user-latitude');
+        const userLongitudeSpan = document.getElementById('user-longitude');
+        const distanceSpan = document.getElementById('distance');
+        const directionsLink = document.getElementById('directions-link');
         const mapIframe = document.getElementById('map-iframe');
 
         // Event listener for image selection
         imageInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
-                // Reset UI
-                resultsDiv.classList.add('hidden');
-                messageBox.classList.add('hidden');
-                uploadBox.classList.add('hidden');
-                imagePreviewContainer.classList.remove('hidden');
+                resetUI(false); // Reset UI but don't show upload box yet
+                loaderText.textContent = "កំពុងអានទិន្នន័យ EXIF...";
                 loader.classList.remove('hidden');
-
+                
                 // Display image preview
                 const reader = new FileReader();
-                reader.onload = (e) => {
-                    imagePreview.src = e.target.result;
-                };
+                reader.onload = (e) => { imagePreview.src = e.target.result; };
                 reader.readAsDataURL(file);
 
                 // Use exif-js to get metadata
@@ -163,24 +182,74 @@
                     const latRef = EXIF.getTag(this, "GPSLatitudeRef");
                     const lonRef = EXIF.getTag(this, "GPSLongitudeRef");
 
-                    loader.classList.add('hidden');
-
                     if (lat && lon && latRef && lonRef) {
-                        // Convert DMS (Degrees, Minutes, Seconds) to DD (Decimal Degrees)
                         const latDD = convertDMSToDD(lat[0], lat[1], lat[2], latRef);
                         const lonDD = convertDMSToDD(lon[0], lon[1], lon[2], lonRef);
-
-                        displayResults(latDD, lonDD);
+                        getUserLocation(latDD, lonDD);
                     } else {
+                        loader.classList.add('hidden');
                         showMessage("រកមិនឃើញទិន្នន័យទីតាំង (Geotag) ដែលបង្កប់ក្នុងរូបភាពនេះទេ។", 'error');
-                        uploadBox.classList.remove('hidden');
-                        imagePreviewContainer.classList.add('hidden');
+                        resetUI(true); // Full reset
                     }
                 });
             }
         });
+        
+        resetBtn.addEventListener('click', () => resetUI(true));
+        
+        function getUserLocation(imageLat, imageLon) {
+            loaderText.textContent = "សូមអនុញ្ញាតដើម្បីចូលប្រើទីតាំងរបស់អ្នក...";
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLon = position.coords.longitude;
+                        displayResults(imageLat, imageLon, userLat, userLon);
+                    },
+                    (error) => {
+                        loader.classList.add('hidden');
+                        let errorMessage = "មានបញ្ហាក្នុងការទទួលបានទីតាំងរបស់អ្នក។";
+                        if (error.code === 1) errorMessage = "អ្នកបានបដិសេធការចូលប្រើទីតាំង។ សូមអនុញ្ញាតដើម្បីប្រើមុខងារនេះ។";
+                        showMessage(errorMessage, 'error');
+                        resetUI(true);
+                    }
+                );
+            } else {
+                loader.classList.add('hidden');
+                showMessage("Geolocation មិនត្រូវបានគាំទ្រដោយ browser នេះទេ។", 'error');
+                resetUI(true);
+            }
+        }
 
-        // Function to convert DMS to Decimal Degrees
+        function displayResults(imageLat, imageLon, userLat, userLon) {
+            loader.classList.add('hidden');
+            
+            latitudeSpan.textContent = imageLat.toFixed(6);
+            longitudeSpan.textContent = imageLon.toFixed(6);
+            userLatitudeSpan.textContent = userLat.toFixed(6);
+            userLongitudeSpan.textContent = userLon.toFixed(6);
+            
+            const distance = calculateDistance(imageLat, imageLon, userLat, userLon);
+            distanceSpan.textContent = `${distance.toFixed(2)} គីឡូម៉ែត្រ`;
+            
+            directionsLink.href = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${imageLat},${imageLon}`;
+            mapIframe.src = `https://maps.google.com/maps?q=${imageLat},${imageLon}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+            
+            resultsDiv.classList.remove('hidden');
+            showMessage('បានរកឃើញ និងប្រៀបធៀបទីតាំងដោយជោគជ័យ!', 'success');
+        }
+        
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the Earth in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
         function convertDMSToDD(degrees, minutes, seconds, direction) {
             let dd = degrees + minutes / 60 + seconds / 3600;
             if (direction == "S" || direction == "W") {
@@ -189,27 +258,30 @@
             return dd;
         }
 
-        // Function to display results
-        function displayResults(lat, lon) {
-            latitudeSpan.textContent = lat.toFixed(6); // Show with 6 decimal places
-            longitudeSpan.textContent = lon.toFixed(6);
-            
-            const mapSrc = `https://maps.google.com/maps?q=${lat},${lon}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
-            mapIframe.src = mapSrc;
-            
-            resultsDiv.classList.remove('hidden');
-            showMessage('បានរកឃើញទិន្នន័យទីតាំងដោយជោគជ័យ!', 'success');
-        }
-
-        // Function to show info or error messages
         function showMessage(message, type = 'info') {
             messageText.textContent = message;
-            messageBox.classList.remove('hidden', 'bg-red-100', 'border-red-400', 'text-red-700', 'bg-green-100', 'border-green-400', 'text-green-700');
+            messageBox.className = 'mt-6 px-4 py-3 rounded-lg text-center'; // Reset classes
             
             if (type === 'error') {
                 messageBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
             } else if (type === 'success') {
                  messageBox.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+            }
+        }
+        
+        function resetUI(showUpload) {
+            resultsDiv.classList.add('hidden');
+            messageBox.classList.add('hidden');
+            imagePreviewContainer.classList.add('hidden');
+            loader.classList.add('hidden');
+            resetBtn.classList.add('hidden');
+            imageInput.value = ''; // Clear file input
+            if(showUpload) {
+                uploadBox.classList.remove('hidden');
+            } else {
+                uploadBox.classList.add('hidden');
+                imagePreviewContainer.classList.remove('hidden');
+                resetBtn.classList.remove('hidden');
             }
         }
     </script>
