@@ -4,319 +4,275 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ប្រព័ន្ធសម្គាល់ផ្ទៃមុខ</title>
-    <!-- Tailwind CSS for styling -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- face-api.js for face recognition -->
+    <!-- face-api.js library -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
     <style>
-        /* Custom styles for video and canvas overlay */
-        .video-container {
-            position: relative;
-            width: 100%;
-            max-width: 720px;
-            margin: 0 auto;
-            border-radius: 0.5rem;
-            overflow: hidden;
+        /* Custom styles for the loader and overall layout */
+        body {
+            font-family: 'Kantumruy Pro', sans-serif; /* Using a Khmer font */
+            background-color: #111827; /* bg-gray-900 */
         }
-        #video, #overlay {
+        #loader {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(17, 24, 39, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            transition: opacity 0.5s ease-out;
         }
-        #video {
-            object-fit: cover;
-        }
-        .loader {
-            border-top-color: #3498db;
-            -webkit-animation: spin 1s linear infinite;
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-left-color: #3b82f6; /* blue-500 */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
         }
-        @-webkit-keyframes spin {
-            0% { -webkit-transform: rotate(0deg); }
-            100% { -webkit-transform: rotate(360deg); }
-        }
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
         }
     </style>
+    <!-- Google Font for Khmer -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gray-100 font-sans text-gray-800">
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50">
-        <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-24 w-24 mb-4"></div>
-        <h2 class="text-center text-xl font-semibold text-gray-700">កំពុងរៀបចំប្រព័ន្ធ...</h2>
-        <p id="loading-status" class="text-center text-gray-500 mt-2">សូមរង់ចាំបន្តិច</p>
-    </div>
+    <div class="w-full max-w-4xl mx-auto text-center">
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">ប្រព័ន្ធស្កេន និងសម្គាល់ផ្ទៃមុខ</h1>
+        <p class="text-gray-400 mb-4 sm:mb-6">សូមដាក់មុខរបស់អ្នកឱ្យចំកាមេរ៉ា ដើម្បីចាប់ផ្តើមស្កេន</p>
 
-    <div class="container mx-auto p-4 md:p-8">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">ប្រព័ន្ធវិភាគ និងសម្គាល់ផ្ទៃមុខ</h1>
-            <p class="text-gray-600 mt-2">ស្កេនមុខដើម្បីแสดงព័ត៌មានពី Google Sheet</p>
-        </header>
-
-        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <!-- Video Feed Section -->
-            <div class="bg-white p-4 rounded-lg shadow-md w-full">
-                <h2 class="text-xl font-semibold mb-4 text-center">កាមេរ៉ា</h2>
-                <div id="video-wrapper" class="video-container aspect-video bg-gray-900 rounded-lg">
-                    <video id="video" autoplay muted playsinline></video>
-                    <canvas id="overlay"></canvas>
+        <!-- Video and Canvas container -->
+        <div id="video-container" class="relative w-full max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg overflow-hidden border-2 border-gray-700" style="aspect-ratio: 4 / 3;">
+            <video id="video" class="w-full h-full object-cover" autoplay muted playsinline></video>
+            
+            <!-- Loader Overlay -->
+            <div id="loader">
+                <div class="text-center">
+                    <div class="spinner mx-auto mb-4"></div>
+                    <p id="loader-text" class="text-lg">កំពុងដំណើរការម៉ូដែល...</p>
                 </div>
             </div>
+        </div>
 
-            <!-- Information Section -->
-            <div class="bg-white p-6 rounded-lg shadow-md w-full">
-                <h2 class="text-xl font-semibold mb-4 text-center">ព័ត៌មានដែលរកឃើញ</h2>
-                <div id="result-container" class="space-y-3">
-                    <div class="flex items-center justify-center text-gray-500 h-64" id="placeholder">
-                        <p>កំពុងរង់ចាំការស្កេន...</p>
-                    </div>
-                    <div id="info-card" class="hidden animate-pulse">
-                        <div class="bg-gray-200 rounded-lg p-4">
-                            <div class="h-6 bg-gray-300 rounded w-3/4 mb-4"></div>
-                            <div class="space-y-2">
-                                <div class="h-4 bg-gray-300 rounded w-1/2"></div>
-                                <div class="h-4 bg-gray-300 rounded w-5/6"></div>
-                                <div class="h-4 bg-gray-300 rounded w-2/3"></div>
-                                <div class="h-4 bg-gray-300 rounded w-3/4"></div>
-                                <div class="h-4 bg-gray-300 rounded w-4/6"></div>
-                                <div class="h-4 bg-gray-300 rounded w-1/2"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- Information Display -->
+        <div id="info-container" class="mt-8 w-full max-w-2xl mx-auto p-4 sm:p-6 bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+            <h2 class="text-xl sm:text-2xl font-bold mb-4 border-b border-gray-600 pb-2">ព័ត៌មានលម្អិត</h2>
+            <div id="info-content" class="text-left grid grid-cols-1 md:grid-cols-2 gap-4 text-base sm:text-lg">
+                <!-- Data will be populated here -->
+                 <p id="status" class="text-yellow-400 md:col-span-2">ត្រៀមខ្លួនស្កេន...</p>
             </div>
-        </main>
+        </div>
     </div>
 
     <script>
         const video = document.getElementById('video');
-        const overlay = document.getElementById('overlay');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingStatus = document.getElementById('loading-status');
-        const resultContainer = document.getElementById('result-container');
-        const placeholder = document.getElementById('placeholder');
-        const infoCard = document.getElementById('info-card');
-
-        // --- Google Sheet Configuration ---
+        const loader = document.getElementById('loader');
+        const loaderText = document.getElementById('loader-text');
+        const infoContent = document.getElementById('info-content');
+        const statusElement = document.getElementById('status');
+        
+        // Google Sheet Configuration
         const SHEET_ID = '1eRyPoifzyvB4oBmruNyXcoKMKPRqjk6xDD6-bPNW6pc';
         const SHEET_NAME = 'DIList';
-        const GOOGLE_SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
-        
-        // --- Main execution ---
-        Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-            faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-            faceapi.nets.ssdMobilenetv1.loadFromUri('/models'), // For better reference image detection
-        ]).then(startSystem);
+        const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
 
-        async function startSystem() {
+        // Load all necessary models from face-api.js
+        async function loadModels() {
+            // Using the standard NPM package path for models for better reliability
+            const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
             try {
-                updateStatus('កំពុងចាប់ផ្តើមបើកកាមេរ៉ា...');
-                await startWebcam();
-                updateStatus('កំពុងទាញយកទិន្នន័យបុគ្គល...');
-                const labeledFaceDescriptors = await getLabeledFaceDescriptors();
-                if (!labeledFaceDescriptors || labeledFaceDescriptors.length === 0) {
-                    throw new Error("មិនអាចទាញយកទិន្នន័យផ្ទៃមុខយោងបានទេ");
-                }
-                updateStatus('ប្រព័ន្ធបានត្រៀមរួចរាល់សម្រាប់ប្រើប្រាស់');
-                loadingOverlay.style.display = 'none';
-                recognizeFaces(labeledFaceDescriptors);
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL)
+                ]);
             } catch (error) {
-                console.error(error);
-                loadingStatus.textContent = `មានបញ្ហា​កើតឡើង: ${error.message}។ សូមព្យាយាមផ្ទុកទំព័រឡើងវិញ។`;
-                loadingStatus.classList.add('text-red-500');
+                console.error("Error loading models:", error);
+                loaderText.innerText = "Error loading models. Please refresh.";
             }
         }
 
-        function startWebcam() {
-            return navigator.mediaDevices.getUserMedia({ video: {} })
-                .then(stream => {
-                    video.srcObject = stream;
-                    return new Promise(resolve => video.onloadedmetadata = resolve);
-                })
-                .catch(err => {
-                    console.error("Error accessing webcam: ", err);
-                    throw new Error("មិនអាចចូលប្រើកាមេរ៉ាបានទេ");
-                });
-        }
-        
-        function updateStatus(message) {
-            loadingStatus.textContent = message;
+        // Start webcam stream
+        async function startVideo() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Camera access error:", err);
+                loaderText.innerText = "មិនអាចចូលប្រើកាមេរ៉ាបានទេ។ សូមអនុញ្ញាតឱ្យប្រើប្រាស់។";
+                loader.querySelector('.spinner').style.display = 'none';
+            }
         }
 
-        /**
-         * Fetches data from Google Sheets, processes it, and creates labeled face descriptors.
-         */
-        async function getLabeledFaceDescriptors() {
-            updateStatus('កំពុងទាញយកទិន្នន័យពី Google Sheet...');
-            const response = await fetch(GOOGLE_SHEET_URL);
-            if (!response.ok) {
-                throw new Error('មិនអាចភ្ជាប់ទៅកាន់ Google Sheet បានទេ');
-            }
-            const csvData = await response.text();
-            
-            // Parse CSV data
-            const rows = csvData.split('\n').slice(1); // Skip header row
-            const peopleData = rows.map(row => {
-                // The gviz CSV output wraps strings in quotes and escapes inner quotes.
-                // A simple split by comma can be fragile. This regex is more robust.
-                const columns = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
-                                   .map(col => col.replace(/"/g, ''));
+        // Fetch data from Google Sheet, load images, and create face descriptors
+        async function loadLabeledImages() {
+            loaderText.innerText = 'កំពុងទាញយកទិន្នន័យ...';
+            try {
+                const response = await fetch(CSV_URL);
+                const csvText = await response.text();
+                // Parse CSV text: Remove quotes and split into lines, then skip header rows (assuming data starts at row 9)
+                const rows = csvText.replace(/"/g, '').split('\n').slice(8);
 
-                if (columns.length < 27) return null; // Ensure there are enough columns
-
-                return {
-                    id: columns[4],       // Column E
-                    table: columns[7],    // Column H
-                    name: columns[11],    // Column L
-                    gender: columns[13],  // Column N
-                    class: columns[17],   // Column R
-                    department: columns[18], // Column S
-                    photoUrl: columns[26] // Column AA
-                };
-            }).filter(p => p && p.id && p.photoUrl && p.photoUrl.startsWith('http'));
-
-            if (peopleData.length < 8) { // Data starts at row 9, so there must be at least one entry.
-                 console.warn("No valid data found after row 8. Please check your sheet.");
-                 return [];
-            }
-            const relevantData = peopleData.slice(7); // Data starts at row 9 (index 8, slice from 7)
-
-            updateStatus(`បានរកឃើញទិន្នន័យ ${relevantData.length} នាក់ កំពុងដំណើរការរូបភាព...`);
-
-            const descriptors = [];
-            let processedCount = 0;
-
-            for (const person of relevantData) {
-                try {
-                    // IMPORTANT: The image URL must be a direct link to the image file (e.g., .jpg, .png).
-                    // Google Drive links like "drive.google.com/..." will NOT work directly.
-                    // You must make the images publicly accessible and use their direct URL.
-                    // We add a CORS proxy to help with potential cross-origin issues.
-                    const imageUrl = `https://cors-anywhere.herokuapp.com/${person.photoUrl}`;
-                    
-                    const img = await faceapi.fetchImage(imageUrl);
-                    const detections = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options())
-                        .withFaceLandmarks()
-                        .withFaceDescriptor();
-                    
-                    if (detections) {
-                        const descriptor = new faceapi.LabeledFaceDescriptors(person.id, [detections.descriptor]);
-                        descriptor.personData = person; // Attach full data to the descriptor
-                        descriptors.push(descriptor);
-                    } else {
-                        console.warn(`រកមិនឃើញផ្ទៃមុខក្នុងរូបភាពសម្រាប់អត្តលេខ៖ ${person.id}`);
+                const labelsData = rows.map(row => {
+                    const columns = row.split(',');
+                    if (columns.length > 26 && columns[26]) { // Check if URL column exists
+                        return {
+                            id: columns[4],      // អត្តលេខ E
+                            name: columns[11],     // ឈ្មោះ L
+                            gender: columns[13],   // ភេទ N
+                            department: columns[18], // ផ្នែកការងារ S
+                            desk: columns[7],      // លេខតុ H
+                            class: columns[17],    // ថ្នាក់រៀន R
+                            imageUrl: columns[26]  // រូបថតយោង AA
+                        };
                     }
-                } catch (e) {
-                    console.error(`មិនអាចទាញយករូបភាពសម្រាប់អត្តលេខ៖ ${person.id}`, e);
+                    return null;
+                }).filter(Boolean); // Filter out null values
+
+                if (labelsData.length === 0) {
+                     loaderText.innerText = "រកមិនឃើញទិន្នន័យរូបភាពក្នុង Google Sheet ទេ។";
+                     return [];
                 }
-                processedCount++;
-                updateStatus(`កំពុងដំណើរការ ${processedCount}/${relevantData.length} នាក់...`);
+
+                loaderText.innerText = `រកឃើញ ${labelsData.length} ទិន្នន័យ។ កំពុងដំណើរការរូបភាព...`;
+                
+                return Promise.all(
+                    labelsData.map(async (data) => {
+                        const descriptions = [];
+                        try {
+                            // Using a CORS proxy to prevent cross-origin issues with some image hosts
+                            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                            const imageUrl = data.imageUrl.startsWith('http') ? data.imageUrl : 'https://' + data.imageUrl;
+                            const img = await faceapi.fetchImage(`${proxyUrl}${encodeURIComponent(imageUrl)}`);
+                            
+                            const detections = await faceapi.detectSingleFace(img)
+                                .withFaceLandmarks()
+                                .withFaceDescriptor();
+                            
+                            if (detections) {
+                                descriptions.push(detections.descriptor);
+                                return new faceapi.LabeledFaceDescriptors(JSON.stringify(data), descriptions);
+                            }
+                        } catch (e) {
+                            console.error(`Error processing image for ${data.name}: ${data.imageUrl}`, e);
+                        }
+                        return null;
+                    })
+                ).then(results => results.filter(Boolean)); // Filter out any null results from failed image processing
+
+            } catch (error) {
+                console.error("Error fetching or parsing sheet data:", error);
+                loaderText.innerText = "មានបញ្ហាក្នុងការទាញយកទិន្នន័យពី Google Sheet។";
+                return [];
             }
-            return descriptors;
         }
 
-        function recognizeFaces(labeledFaceDescriptors) {
+        // Main function to run everything
+        async function run() {
+            await loadModels();
+            await startVideo();
+        }
+
+        video.addEventListener('play', async () => {
+            const labeledFaceDescriptors = await loadLabeledImages();
+            
             if (labeledFaceDescriptors.length === 0) {
-                 console.error("គ្មានទិន្នន័យផ្ទៃមុខយោង មិនអាចចាប់ផ្តើមការសម្គាល់បានទេ");
-                 updateStatus("មានបញ្ហា​កើតឡើង៖ គ្មានទិន្នន័យផ្ទៃមុខយោង");
+                 loaderText.innerText = "មិនអាចដំណើរការបានទេ ដោយសារគ្មានទិន្នន័យយោង។";
                  return;
             }
-            const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.55); // Adjust threshold if needed
-            const canvas = overlay;
+
+            const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.5); // Confidence threshold
+
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 500);
+
+            const canvas = faceapi.createCanvasFromMedia(video);
+            document.getElementById('video-container').append(canvas);
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
 
-            let lastFoundId = null;
-            let foundTimeout;
+            let lastMatch = null;
+            let lastMatchTime = 0;
 
             setInterval(async () => {
                 const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
                     .withFaceLandmarks()
                     .withFaceDescriptors();
-
+                
                 const resizedDetections = faceapi.resizeResults(detections, displaySize);
                 canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-
-                if (resizedDetections.length > 0) {
-                    const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
-                    
-                    results.forEach((result, i) => {
-                        const box = resizedDetections[i].detection.box;
-                        const personId = result.label;
-                        const drawBox = new faceapi.draw.DrawBox(box, { 
-                            label: personId === 'unknown' ? 'មិនស្គាល់' : personId,
-                            boxColor: personId === 'unknown' ? 'red' : 'green'
-                        });
-                        drawBox.draw(canvas);
-
-                        if (personId !== 'unknown' && personId !== lastFoundId) {
-                            lastFoundId = personId;
-                            
-                            // Find the full data for the matched person
-                            const matchedDescriptor = labeledFaceDescriptors.find(ld => ld.label === personId);
-                            if (matchedDescriptor && matchedDescriptor.personData) {
-                                displayPersonInfo(matchedDescriptor.personData);
-                            }
-                            
-                            // Reset after a few seconds to allow for new scans
-                            clearTimeout(foundTimeout);
-                            foundTimeout = setTimeout(() => {
-                                lastFoundId = null;
-                                resetInfoDisplay();
-                            }, 5000);
-                        }
-                    });
-                } else {
-                     // If no faces are detected, and someone was previously found, reset the display
-                     if(lastFoundId) {
-                        lastFoundId = null;
-                        clearTimeout(foundTimeout);
-                        resetInfoDisplay();
-                     }
+                
+                if (resizedDetections.length === 0) {
+                    if (document.getElementById('status')) {
+                        document.getElementById('status').textContent = 'រកមិនឃើញផ្ទៃមុខ...';
+                    }
+                    if (lastMatch) {
+                       infoContent.innerHTML = `<p id="status" class="text-yellow-400 md:col-span-2">ត្រៀមខ្លួនស្កេន...</p>`;
+                       lastMatch = null;
+                    }
+                    return;
                 }
-            }, 200);
-        }
 
-        function displayPersonInfo(person) {
-            placeholder.classList.add('hidden');
-            infoCard.classList.remove('hidden', 'animate-pulse');
-            
-            resultContainer.innerHTML = `
-                <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-r-lg">
-                    <h3 class="font-bold text-2xl mb-4 text-center">${person.name || 'N/A'}</h3>
-                    <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-md">
-                        <strong>អត្តលេខ:</strong>             <span>${person.id || 'N/A'}</span>
-                        <strong>ភេទ:</strong>                   <span>${person.gender || 'N/A'}</span>
-                        <strong>ផ្នែកការងារ:</strong>       <span>${person.department || 'N/A'}</span>
-                        <strong>ថ្នាក់រៀន:</strong>           <span>${person.class || 'N/A'}</span>
-                        <strong>លេខតុ:</strong>                 <span>${person.table || 'N/A'}</span>
-                    </div>
-                </div>
-            `;
-        }
+                const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
+                
+                results.forEach((result, i) => {
+                    const box = resizedDetections[i].detection.box;
+                    let label = result.toString();
+                    let color = 'red';
 
-        function resetInfoDisplay() {
-            resultContainer.innerHTML = ''; // Clear previous info
-            resultContainer.appendChild(placeholder);
-            resultContainer.appendChild(infoCard); // re-add skeleton card
-            placeholder.classList.remove('hidden');
-            infoCard.classList.add('hidden');
-        }
+                    if (label.includes('unknown')) {
+                        label = 'មិនស្គាល់';
+                         if (document.getElementById('status')) {
+                            document.getElementById('status').textContent = 'រកឃើញផ្ទៃមុខ ប៉ុន្តែមិនស្គាល់អត្តសញ្ញាណ។';
+                        }
+                    } else {
+                        color = 'green';
+                        const data = JSON.parse(result.label);
+                        label = data.name;
+                        
+                        // Update info only if it's a new match or after 5 seconds
+                        const now = Date.now();
+                        if (lastMatch?.id !== data.id || now - lastMatchTime > 5000) {
+                             lastMatch = data;
+                             lastMatchTime = now;
+                             
+                             infoContent.innerHTML = `
+                                <div class="md:col-span-2 mb-2"><strong class="text-green-400">ស្កេនបានជោគជ័យ!</strong></div>
+                                <p><strong>អត្តលេខ:</strong> <span class="text-blue-300">${data.id || 'N/A'}</span></p>
+                                <p><strong>ឈ្មោះ:</strong> <span class="text-blue-300">${data.name || 'N/A'}</span></p>
+                                <p><strong>ភេទ:</strong> <span class="text-blue-300">${data.gender || 'N/A'}</span></p>
+                                <p><strong>លេខតុ:</strong> <span class="text-blue-300">${data.desk || 'N/A'}</span></p>
+                                <p><strong>ផ្នែក:</strong> <span class="text-blue-300">${data.department || 'N/A'}</span></p>
+                                <p><strong>ថ្នាក់:</strong> <span class="text-blue-300">${data.class || 'N/A'}</span></p>
+                             `;
+                        }
+                    }
 
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            if (video.readyState) {
-                const displaySize = { width: video.clientWidth, height: video.clientHeight };
-                faceapi.matchDimensions(overlay, displaySize);
-            }
+                    const drawBox = new faceapi.draw.DrawBox(box, { label, boxColor: color });
+                    drawBox.draw(canvas);
+                });
+
+            }, 200); // Scan every 200ms
         });
+
+        // Initialize the application
+        run();
 
     </script>
 </body>
