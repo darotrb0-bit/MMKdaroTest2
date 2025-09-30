@@ -10,11 +10,11 @@
     <style>
         body {
             font-family: 'Koulen', sans-serif;
+            background-image: linear-gradient(to top right, #f8fafc, #e2e8f0);
         }
         .title-font {
             font-family: 'Moul', serif;
         }
-        /* Custom styles for file input */
         .file-input-wrapper {
             position: relative;
             overflow: hidden;
@@ -29,11 +29,15 @@
             cursor: pointer;
             font-size: 1rem;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease-in-out;
         }
         .file-input-button:hover {
             background-color: #4f46e5;
             color: white;
+            transform: translateY(-2px);
+        }
+        .file-input-button:active {
+            transform: translateY(0px) scale(0.98);
         }
         .file-input-wrapper input[type=file] {
             font-size: 100px;
@@ -43,7 +47,6 @@
             opacity: 0;
             cursor: pointer;
         }
-        /* Loader animation */
         .loader {
             border: 5px solid #f3f3f3;
             border-top: 5px solid #4f46e5;
@@ -56,19 +59,26 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-animate {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8">
+    <div class="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 card-animate">
         
         <!-- Header -->
         <div class="text-center mb-6 relative">
-            <h1 class="text-3xl md:text-4xl font-bold text-slate-800 title-font">ឧបករណ៍អានទិន្នន័យទីតាំង</h1>
-            <p class="text-indigo-600 text-lg md:text-xl mt-1">ស្រង់ទិន្នន័យ GPS និងប្រៀបធៀបទីតាំង</p>
-            <button id="reset-btn" class="hidden absolute top-0 right-0 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-800 title-font">ឧបករណ៍ទិន្នន័យទីតាំង</h1>
+            <p class="text-indigo-600 text-lg md:text-xl mt-1">ស្រង់ GPS និងប្រៀបធៀបទីតាំង</p>
+            <button id="reset-btn" class="hidden absolute top-0 right-0 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-transform hover:scale-110 active:scale-100">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 4l16 16" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
@@ -82,9 +92,10 @@
 
             <div class="file-input-wrapper">
                 <button class="file-input-button">ជ្រើសរើសរូបភាព</button>
-                <input id="image-input" type="file" accept="image/*">
+                <input id="image-input" type="file" accept="image/jpeg, image/png">
             </div>
             <p class="text-xs text-slate-500 mt-4">ដំណើរការនឹងចាប់ផ្តើមដោយស្វ័យប្រវត្តិ</p>
+             <p class="text-xs text-slate-500 mt-2">ចំណាំ៖ ទូរស័ព្ទ ឬកម្មវិធីមួយចំនួនអាចដកទិន្នន័យ GPS ចេញពីរូបភាពដោយស្វ័យប្រវត្តិ។</p>
         </div>
 
         <!-- Image Preview -->
@@ -103,12 +114,12 @@
             <h2 class="text-2xl font-bold text-slate-800 text-center mb-4">លទ្ធផលប្រៀបធៀប</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-slate-50 rounded-lg p-4">
+                <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
                     <h3 class="font-bold text-lg text-center mb-2 text-indigo-600">ទីតាំងរូបភាព</h3>
                     <p class="text-base text-slate-700"><strong class="text-slate-900">រយៈទទឹង:</strong> <span id="latitude"></span></p>
                     <p class="text-base text-slate-700 mt-1"><strong class="text-slate-900">រយៈបណ្តោយ:</strong> <span id="longitude"></span></p>
                 </div>
-                <div class="bg-slate-50 rounded-lg p-4">
+                <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
                     <h3 class="font-bold text-lg text-center mb-2 text-green-600">ទីតាំងបច្ចុប្បន្ន</h3>
                     <p class="text-base text-slate-700"><strong class="text-slate-900">រយៈទទឹង:</strong> <span id="user-latitude"></span></p>
                     <p class="text-base text-slate-700 mt-1"><strong class="text-slate-900">រយៈបណ្តោយ:</strong> <span id="user-longitude"></span></p>
@@ -117,7 +128,7 @@
 
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center mt-4">
                 <p class="text-lg font-bold text-blue-800">ចម្ងាយសរុប៖ <span id="distance" class="text-xl"></span></p>
-                <a id="directions-link" href="#" target="_blank" class="mt-2 inline-block bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">បង្ហាញផ្លូវនៅលើ Google Maps</a>
+                <a id="directions-link" href="#" target="_blank" class="mt-2 inline-block bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-all duration-200 transform hover:scale-105">បង្ហាញផ្លូវនៅលើ Google Maps</a>
             </div>
             
             <div class="w-full h-80 bg-slate-200 rounded-lg overflow-hidden shadow mt-4">
@@ -166,32 +177,37 @@
         imageInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
-                resetUI(false); // Reset UI but don't show upload box yet
+                resetUI(false); 
                 loaderText.textContent = "កំពុងអានទិន្នន័យ EXIF...";
                 loader.classList.remove('hidden');
                 
-                // Display image preview
                 const reader = new FileReader();
                 reader.onload = (e) => { imagePreview.src = e.target.result; };
                 reader.readAsDataURL(file);
 
-                // Use exif-js to get metadata
-                EXIF.getData(file, function() {
-                    const lat = EXIF.getTag(this, "GPSLatitude");
-                    const lon = EXIF.getTag(this, "GPSLongitude");
-                    const latRef = EXIF.getTag(this, "GPSLatitudeRef");
-                    const lonRef = EXIF.getTag(this, "GPSLongitudeRef");
+                try {
+                    EXIF.getData(file, function() {
+                        const lat = EXIF.getTag(this, "GPSLatitude");
+                        const lon = EXIF.getTag(this, "GPSLongitude");
+                        const latRef = EXIF.getTag(this, "GPSLatitudeRef");
+                        const lonRef = EXIF.getTag(this, "GPSLongitudeRef");
 
-                    if (lat && lon && latRef && lonRef) {
-                        const latDD = convertDMSToDD(lat[0], lat[1], lat[2], latRef);
-                        const lonDD = convertDMSToDD(lon[0], lon[1], lon[2], lonRef);
-                        getUserLocation(latDD, lonDD);
-                    } else {
-                        loader.classList.add('hidden');
-                        showMessage("រកមិនឃើញទិន្នន័យទីតាំង (Geotag) ដែលបង្កប់ក្នុងរូបភាពនេះទេ។", 'error');
-                        resetUI(true); // Full reset
-                    }
-                });
+                        if (lat && lon && latRef && lonRef) {
+                            const latDD = convertDMSToDD(lat[0], lat[1], lat[2], latRef);
+                            const lonDD = convertDMSToDD(lon[0], lon[1], lon[2], lonRef);
+                            getUserLocation(latDD, lonDD);
+                        } else {
+                            loader.classList.add('hidden');
+                            showMessage("រកមិនឃើញទិន្នន័យទីតាំង (Geotag) ដែលបង្កប់ក្នុងរូបភាពនេះទេ។", 'error');
+                            resetUI(true); 
+                        }
+                    });
+                } catch (error) {
+                    console.error("Error reading EXIF data:", error);
+                    loader.classList.add('hidden');
+                    showMessage("មានកំហុសក្នុងការអានទិន្នន័យរូបភាព។ សូមព្យាយាមម្តងទៀតជាមួយរូបភាពផ្សេង។", 'error');
+                    resetUI(true);
+                }
             }
         });
         
@@ -260,7 +276,7 @@
 
         function showMessage(message, type = 'info') {
             messageText.textContent = message;
-            messageBox.className = 'mt-6 px-4 py-3 rounded-lg text-center'; // Reset classes
+            messageBox.className = 'mt-6 px-4 py-3 rounded-lg text-center transition-all duration-300';
             
             if (type === 'error') {
                 messageBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
@@ -275,7 +291,7 @@
             imagePreviewContainer.classList.add('hidden');
             loader.classList.add('hidden');
             resetBtn.classList.add('hidden');
-            imageInput.value = ''; // Clear file input
+            imageInput.value = '';
             if(showUpload) {
                 uploadBox.classList.remove('hidden');
             } else {
