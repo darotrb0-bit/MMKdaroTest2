@@ -3,390 +3,345 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ប្រព័ន្ធសម្គាល់អត្តសញ្ញាណនិស្សិត</title>
+    <title>ប្រព័ន្ធស្វែងរកព័ត៌មាននិស្សិត</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Koulen&family=Noto+Sans+Khmer:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Noto Sans Khmer', sans-serif;
-            touch-action: manipulation;
+            font-family: 'Kantumruy Pro', sans-serif;
         }
-        .koulen {
-            font-family: 'Koulen', cursive;
+        #cameraModal {
+            background-color: rgba(0,0,0,0.8);
         }
         #video, #overlay {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            border-radius: 1.5rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            /* Flip the video horizontally for front camera to act like a mirror */
-            transform: translate(-50%, -50%) scaleX(-1);
+            max-width: 100%;
+            max-height: 100%;
         }
-        #video.rear-camera, #overlay.rear-camera {
-             /* Un-flip for the back camera */
-            transform: translate(-50%, -50%) scaleX(1);
+        .animate-spin {
+            animation: spin 1s linear infinite;
         }
-        .loader-ring {
-            display: inline-block;
-            position: relative;
-            width: 80px;
-            height: 80px;
-        }
-        .loader-ring div {
-            box-sizing: border-box;
-            display: block;
-            position: absolute;
-            width: 64px;
-            height: 64px;
-            margin: 8px;
-            border: 8px solid #fff;
-            border-radius: 50%;
-            animation: loader-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-            border-color: #fff transparent transparent transparent;
-        }
-        .loader-ring div:nth-child(1) { animation-delay: -0.45s; }
-        .loader-ring div:nth-child(2) { animation-delay: -0.3s; }
-        .loader-ring div:nth-child(3) { animation-delay: -0.15s; }
-        @keyframes loader-ring {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .card-gradient {
-            background: linear-gradient(145deg, #1e3a8a, #3b82f6);
-        }
-        .info-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-90 flex flex-col items-center justify-center z-50 transition-opacity duration-500">
-        <div class="loader-ring"><div></div><div></div><div></div><div></div></div>
-        <p id="loading-text" class="mt-6 text-lg font-medium text-gray-300">កំពុងរៀបចំប្រព័ន្ធ...</p>
-        <div class="w-full max-w-xs bg-gray-700 rounded-full h-2.5 mt-4">
-            <div id="progress-bar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%"></div>
-        </div>
-        <p id="progress-label" class="text-sm mt-2 text-gray-400">0%</p>
-    </div>
-
-    <!-- Main Content -->
-    <div id="main-content" class="w-full max-w-md mx-auto text-center hidden">
-        
-        <!-- Header -->
-        <header class="mb-4">
-            <h1 class="text-3xl koulen text-blue-400">ប្រព័ន្ធស្វែងរកនិស្សិត</h1>
-            <p class="text-gray-400">ស្កេនមុខដើម្បីបង្ហាញព័ត៌មានលម្អិត</p>
-        </header>
-
-        <!-- Scanner View -->
-        <div id="scanner-view">
-            <div id="video-container" class="relative w-full aspect-square bg-gray-800 rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-700">
-                <video id="video" class="rear-camera" playsinline muted autoplay></video>
-                <canvas id="overlay" class="rear-camera"></canvas>
-                <button id="switch-camera-button" class="absolute top-4 right-4 bg-gray-900 bg-opacity-50 hover:bg-opacity-75 p-3 rounded-full transition-transform transform hover:scale-110 z-10 hidden">
-                    <svg class="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 20v-5h5M20 4v5h-5" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-4-4-4 4M9 5l4 4 4-4" />
-                    </svg>
-                </button>
+    <div class="w-full max-w-md mx-auto">
+        <div class="bg-gray-800 shadow-2xl rounded-2xl p-6">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-cyan-400">ស្វែងរកព័ត៌មាននិស្សិត</h1>
+                <p class="text-gray-400 mt-2">បញ្ចូលអត្តលេខ ឬប្រើរូបថតដើម្បីស្វែងរក</p>
             </div>
-            <button id="start-button" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl text-lg koulen transition-transform transform hover:scale-105 shadow-lg">
-                ចាប់ផ្តើមស្កេន
-            </button>
-        </div>
 
-        <!-- Result View -->
-        <div id="result-view" class="hidden w-full">
-            <div class="card-gradient p-6 rounded-3xl shadow-2xl">
-                <img id="student-photo" src="https://placehold.co/150x150/e2e8f0/e2e8f0" class="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-white object-cover shadow-lg">
-                <h2 id="student-name-latin" class="text-2xl font-bold text-white tracking-wide">STUDENT NAME</h2>
-                <h3 id="student-name-khmer" class="text-xl font-medium text-blue-200 mb-2">ឈ្មោះភាសាខ្មែរ</h3>
-                <p id="student-id" class="text-sm text-gray-300 bg-black bg-opacity-20 rounded-full px-3 py-1 inline-block">ID: N/A</p>
-
-                <div class="mt-6 text-left grid grid-cols-2 gap-x-4 gap-y-3">
-                    <div class="info-card p-3 rounded-lg col-span-2">
-                        <span class="text-xs text-blue-200 block">ផ្នែកការងារ</span>
-                        <p id="student-major" class="font-semibold">N/A</p>
-                    </div>
-                     <div class="info-card p-3 rounded-lg">
-                        <span class="text-xs text-blue-200 block">ភេទ</span>
-                        <p id="student-gender" class="font-semibold">N/A</p>
-                    </div>
-                     <div class="info-card p-3 rounded-lg">
-                        <span class="text-xs text-blue-200 block">ក្រុម</span>
-                        <p id="student-group" class="font-semibold">N/A</p>
-                    </div>
-                    <div class="info-card p-3 rounded-lg">
-                        <span class="text-xs text-blue-200 block">ថ្នាក់</span>
-                        <p id="student-class" class="font-semibold">N/A</p>
-                    </div>
-                    <div class="info-card p-3 rounded-lg">
-                        <span class="text-xs text-blue-200 block">ជំនាន់</span>
-                        <p id="student-generation" class="font-semibold">N/A</p>
-                    </div>
-                    <div class="info-card p-3 rounded-lg col-span-2">
-                        <span class="text-xs text-blue-200 block">ឆ្នាំសិក្សា</span>
-                        <p id="student-year" class="font-semibold">N/A</p>
-                    </div>
+            <!-- Search Form -->
+            <div class="space-y-4">
+                <div class="flex space-x-2">
+                    <input type="text" id="studentIdInput" class="flex-grow bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5" placeholder="ឧទាហរណ៍: DI0001" required>
+                    <button id="searchButton" class="text-white bg-cyan-600 hover:bg-cyan-700 focus:ring-4 focus:outline-none focus:ring-cyan-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                        <i class="fa fa-search"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                     <button id="scanFaceButton" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-camera"></i>
+                        <span>ស្កេនមុខ</span>
+                    </button>
+                    <button id="uploadImageButton" class="w-full text-white bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:outline-none focus:ring-purple-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-upload"></i>
+                        <span>Upload រូប</span>
+                    </button>
+                    <input type="file" id="imageUploadInput" accept="image/*" class="hidden">
                 </div>
             </div>
-            <button id="rescan-button" class="mt-6 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-xl text-lg koulen transition-transform transform hover:scale-105 shadow-lg">
-                ស្កេនម្តងទៀត
-            </button>
-        </div>
 
+            <!-- Status/Message Area -->
+            <div id="statusMessage" class="text-center text-yellow-400 min-h-[24px] my-4"></div>
+
+            <!-- Student Info Card (hidden by default) -->
+            <div id="studentInfoCard" class="bg-gray-700 p-5 rounded-xl hidden">
+                <!-- Content is populated by JS -->
+            </div>
+        </div>
+        <footer class="text-center text-gray-500 text-xs mt-4">
+            <p>DI Student Information System &copy; 2025</p>
+        </footer>
+    </div>
+    
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="fixed inset-0 w-full h-full z-50 hidden items-center justify-center">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+        <button id="closeModalButton" class="absolute top-4 right-4 text-white text-3xl z-50"><i class="fa-solid fa-xmark"></i></button>
+        <button id="switchCameraButton" class="absolute bottom-4 left-4 text-white bg-gray-700/50 p-3 rounded-full z-50"><i class="fa-solid fa-camera-rotate"></i></button>
+        <div id="scanStatus" class="absolute bottom-4 text-white bg-black/50 px-4 py-2 rounded-lg">កំពុងស្វែងរកមុខ...</div>
     </div>
 
-    <script>
-        // DOM Elements
-        const video = document.getElementById('video');
-        const overlay = document.getElementById('overlay');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingText = document.getElementById('loading-text');
-        const progressBar = document.getElementById('progress-bar');
-        const progressLabel = document.getElementById('progress-label');
-        const mainContent = document.getElementById('main-content');
-        const startButton = document.getElementById('start-button');
-        const rescanButton = document.getElementById('rescan-button');
-        const scannerView = document.getElementById('scanner-view');
-        const resultView = document.getElementById('result-view');
-        const switchCameraButton = document.getElementById('switch-camera-button');
-        
-        // --- Configuration ---
-        const SPREADSHEET_ID = '1eRyPoifzyvB4oBmruNyXcoKMKPRqjk6xDD6-bPNW6pc';
-        const SHEET_NAME = 'DIList';
-        const API_KEY = 'AIzaSyC6E9ON7DsgkMZEc6obtWehyqzGWwd_EII';
-        const RANGE = 'C9:AA'; // Fetch all required columns in one go
+<script>
+    // --- Configuration ---
+    const API_KEY = 'AIzaSyC6E9ON7DsgkMZEc6obtWehyqzGWwd_EII';
+    const SHEET_ID = '1eRyPoifzyvB4oBmruNyXcoKMKPRqjk6xDD6-bPNW6pc';
+    const SHEET_NAME = 'DIList';
+    const DATA_RANGE = 'C9:AA';
+    const FACEAPI_MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
 
-        // --- State ---
-        let faceMatcher;
-        let studentDataMap = new Map();
-        let detectionInterval;
-        let isScanning = false;
-        let currentFacingMode = 'environment'; // Start with back camera
-        
-        // Update loading progress
-        function updateProgress(value, text) {
-            const percentage = Math.round(value * 100);
-            progressBar.style.width = `${percentage}%`;
-            progressLabel.textContent = `${percentage}%`;
-            if (text) loadingText.textContent = text;
-        }
+    // --- DOM Elements ---
+    const searchButton = document.getElementById('searchButton');
+    const scanFaceButton = document.getElementById('scanFaceButton');
+    const uploadImageButton = document.getElementById('uploadImageButton');
+    const imageUploadInput = document.getElementById('imageUploadInput');
+    const studentIdInput = document.getElementById('studentIdInput');
+    const statusMessage = document.getElementById('statusMessage');
+    const studentInfoCard = document.getElementById('studentInfoCard');
+    const cameraModal = document.getElementById('cameraModal');
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const closeModalButton = document.getElementById('closeModalButton');
+    const switchCameraButton = document.getElementById('switchCameraButton');
+    const scanStatus = document.getElementById('scanStatus');
+    
+    // --- State Variables ---
+    let studentDataCache = [];
+    let faceMatcher = null;
+    let currentStream;
+    let scanInterval;
+    let facingMode = 'environment'; // 'user' for front, 'environment' for back camera
 
-        // Load face-api.js models
-        async function loadModels() {
-            const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights'; // Corrected URL
-            updateProgress(0.1, 'កំពុងទាញយកម៉ូឌែល...');
-            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-            updateProgress(0.3, 'កំពុងទាញយកម៉ូឌែលសម្គាល់មុខ...');
-            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-            updateProgress(0.6, 'កំពុងទាញយកម៉ូឌែលចំណាំផ្ទៃមុខ...');
-            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-        }
+    // Column indices based on the range C9:AA
+    const COL_INDEX = {
+        GENERATION: 0, YEAR: 1, ID: 2, /* E */ GROUP: 4, NAME_KHMER: 9, /* L */
+        NAME_LATIN: 10, GENDER: 11, CLASS: 15, DEPARTMENT: 16, IMAGE_URL: 24
+    };
 
-        // Fetch and process student data from Google Sheet
-        async function setupFaceMatcher() {
-            updateProgress(0.8, 'កំពុងទាញយកទិន្នន័យនិស្សិត...');
-            try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!${RANGE}?key=${API_KEY}`;
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`Error fetching sheet data: ${response.statusText}`);
-                }
-                const data = await response.json();
-                const rows = data.values || [];
+    /**
+     * Main initialization function on window load
+     */
+    window.addEventListener('load', async () => {
+        statusMessage.textContent = 'កំពុងដំណើរការ Face API models...';
+        await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(FACEAPI_MODELS_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(FACEAPI_MODELS_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(FACEAPI_MODELS_URL),
+            faceapi.nets.ssdMobilenetv1.loadFromUri(FACEAPI_MODELS_URL),
+        ]);
+        await fetchAndPrepareData();
+    });
 
-                updateProgress(0.9, `កំពុងរៀបចំរូបភាព ${rows.length} សន្លឹក...`);
-
-                const labeledFaceDescriptors = [];
-                let processedCount = 0;
-
-                for (const row of rows) {
-                    // Column mapping based on range C9:AA
-                    const generation = row[0] || 'N/A';
-                    const academicYear = row[1] || 'N/A';
-                    const fullNameKhmer = row[2] || 'N/A';
-                    const group = row[4] || 'N/A';
-                    const studentId = row[9] || 'N/A';
-                    const fullNameLatin = row[10] || 'N/A';
-                    const gender = row[11] || 'N/A';
-                    const studentClass = row[15] || 'N/A';
-                    const major = row[16] || 'N/A';
-                    const imageUrl = row[24];
-
-                    if (studentId !== 'N/A' && imageUrl) {
-                        studentDataMap.set(studentId, {
-                            generation, academicYear, fullNameKhmer, group, studentId,
-                            fullNameLatin, gender, studentClass, major, imageUrl
-                        });
-
-                        try {
-                            // Using a CORS proxy to bypass image host restrictions
-                            const proxyUrl = 'https://api.allorigins.win/raw?url=';
-                            const proxiedImageUrl = proxyUrl + encodeURIComponent(imageUrl);
-
-                            const img = await faceapi.fetchImage(proxiedImageUrl);
-                            const detections = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-                            if (detections) {
-                                labeledFaceDescriptors.push(new faceapi.LabeledFaceDescriptors(studentId, [detections.descriptor]));
-                            }
-                        } catch (e) {
-                            console.warn(`Could not process image for ${studentId}: ${imageUrl}`, e);
-                        }
-                    }
-                    processedCount++;
-                    const progress = 0.9 + (processedCount / rows.length) * 0.1;
-                    updateProgress(progress, `កំពុងវិភាគរូបភាពទី ${processedCount}/${rows.length}...`);
-                }
-                
-                if (labeledFaceDescriptors.length > 0) {
-                    faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.55); // Adjusted threshold for better accuracy
-                } else {
-                     // Provide a more user-friendly error message if still no descriptors
-                    loadingText.textContent = 'Error: មិនអាចទាញយករូបភាពនិស្សិតបានទេ។';
-                    progressBar.style.backgroundColor = 'red';
-                    // No need to throw an error that stops the app, just inform the user.
-                    console.error("No face descriptors could be created. All image fetches might have failed.");
-                }
-
-            } catch (error) {
-                console.error('Error setting up face matcher:', error);
-                loadingText.textContent = `Error: ${error.message}`;
-                progressBar.style.backgroundColor = 'red';
-            }
-        }
-        
-        // Start camera stream
-        async function startVideo() {
-            // Stop any existing stream before starting a new one
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
-            }
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: currentFacingMode }
-                });
-                video.srcObject = stream;
-                
-                if (currentFacingMode === 'user') {
-                    video.classList.remove('rear-camera');
-                    overlay.classList.remove('rear-camera');
-                } else {
-                    video.classList.add('rear-camera');
-                    overlay.classList.add('rear-camera');
-                }
-
-            } catch (err) {
-                console.error(`Error accessing ${currentFacingMode} camera: `, err);
-                if (currentFacingMode === 'environment') {
-                    console.warn('Back camera failed or not available. Switching to front camera.');
-                    currentFacingMode = 'user';
-                    startVideo(); 
-                } else {
-                    alert("មិនអាចបើកកាមេរ៉ាបានទេ។ សូមពិនិត្យមើលការអនុញ្ញាត។");
-                }
-            }
-        }
-
-
-        // Handle video playing event
-        video.addEventListener('play', () => {
-            const videoContainer = document.getElementById('video-container');
-            const displaySize = { width: videoContainer.clientWidth, height: videoContainer.clientHeight };
-            faceapi.matchDimensions(overlay, displaySize);
-
-            if (detectionInterval) clearInterval(detectionInterval);
-
-            isScanning = true;
-            detectionInterval = setInterval(async () => {
-                if (!isScanning || !faceMatcher) return;
-
-                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-                const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                
-                const context = overlay.getContext('2d');
-                context.clearRect(0, 0, overlay.width, overlay.height);
-
-                const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
-                results.forEach((result, i) => {
-                    const box = resizedDetections[i].detection.box;
-                    const studentId = result.toString().split(' ')[0];
-                    
-                    context.strokeStyle = 'rgba(60, 130, 246, 0.8)';
-                    context.lineWidth = 4;
-                    context.strokeRect(box.x, box.y, box.width, box.height);
-
-                    if (studentId !== 'unknown') {
-                        displayStudentInfo(studentId);
-                        isScanning = false; 
-                        clearInterval(detectionInterval);
-                        video.pause();
-                    }
-                });
-            }, 200);
-        });
-
-        // Display student information
-        function displayStudentInfo(studentId) {
-            const data = studentDataMap.get(studentId);
-            if (data) {
-                document.getElementById('student-photo').src = data.imageUrl;
-                document.getElementById('student-name-latin').textContent = data.fullNameLatin;
-                document.getElementById('student-name-khmer').textContent = data.fullNameKhmer;
-                document.getElementById('student-id').textContent = `ID: ${data.studentId}`;
-                document.getElementById('student-major').textContent = data.major;
-                document.getElementById('student-gender').textContent = data.gender;
-                document.getElementById('student-group').textContent = data.group;
-                document.getElementById('student-class').textContent = data.studentClass;
-                document.getElementById('student-generation').textContent = data.generation;
-                document.getElementById('student-year').textContent = data.academicYear;
-
-                scannerView.classList.add('hidden');
-                resultView.classList.remove('hidden');
-            }
-        }
-        
-        // Event Listeners
-        startButton.addEventListener('click', () => {
-            startVideo();
-            startButton.classList.add('hidden');
-            switchCameraButton.classList.remove('hidden');
-        });
-        
-        switchCameraButton.addEventListener('click', () => {
-            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-            startVideo();
-        });
-
-        rescanButton.addEventListener('click', () => {
-            resultView.classList.add('hidden');
-            scannerView.classList.remove('hidden');
-            switchCameraButton.classList.remove('hidden');
-            video.play();
-        });
-
-        // --- Initialization ---
-        async function initialize() {
-            await loadModels();
-            await setupFaceMatcher();
+    /**
+     * Fetches data from Google Sheets and prepares face matcher.
+     */
+    async function fetchAndPrepareData() {
+        statusMessage.textContent = 'កំពុងទាញយកទិន្នន័យនិស្សិត...';
+        try {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!${DATA_RANGE}?key=${API_KEY}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Error ${response.status}`);
+            const data = await response.json();
             
-            loadingOverlay.classList.add('opacity-0');
-            setTimeout(() => {
-                loadingOverlay.classList.add('hidden');
-                mainContent.classList.remove('hidden');
-            }, 500);
+            if (!data.values || data.values.length === 0) {
+                statusMessage.textContent = 'មិនមានទិន្នន័យក្នុង Google Sheet ទេ។';
+                return;
+            }
+            studentDataCache = data.values;
+            statusMessage.textContent = 'ទាញយកទិន្នន័យជោគជ័យ!';
+            
+            await createFaceMatcher();
+        } catch (error) {
+            console.error('Failed to fetch data:', error);
+            statusMessage.textContent = 'មានបញ្ហាក្នុងការតភ្ជាប់ទៅ Google Sheet។';
+        }
+    }
+
+    /**
+     * Creates a face matcher from the cached student data.
+     */
+    async function createFaceMatcher() {
+        if (studentDataCache.length === 0) return;
+        statusMessage.textContent = 'កំពុងរៀបចំទិន្នន័យរូបភាព... (0%)';
+        const labeledFaceDescriptors = [];
+        let processedCount = 0;
+
+        const studentsWithImages = studentDataCache.filter(row => row[COL_INDEX.IMAGE_URL]);
+
+        for (const row of studentsWithImages) {
+            const label = row[COL_INDEX.ID];
+            const imageUrl = row[COL_INDEX.IMAGE_URL];
+            if (label && imageUrl) {
+                try {
+                    const img = await faceapi.fetchImage(imageUrl);
+                    const detections = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                    if (detections) {
+                        labeledFaceDescriptors.push(new faceapi.LabeledFaceDescriptors(label, [detections.descriptor]));
+                    }
+                } catch (e) {
+                    console.error(`Could not process image for ${label}: ${imageUrl}`, e);
+                }
+            }
+            processedCount++;
+            const percent = Math.round((processedCount / studentsWithImages.length) * 100);
+            statusMessage.textContent = `កំពុងរៀបចំទិន្នន័យរូបភាព... (${percent}%)`;
         }
 
-        initialize();
+        if (labeledFaceDescriptors.length > 0) {
+            faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.55); // Adjust threshold if needed
+            statusMessage.textContent = 'ប្រព័ន្ធបានត្រៀមរួចរាល់! សូមស្វែងរក។';
+        } else {
+            statusMessage.textContent = 'មិនអាចបង្កើតទិន្នន័យផ្ទៃមុខបានទេ, សូមពិនិត្យ URL រូបភាព។';
+        }
+    }
+    
+    /**
+     * Displays the found student's information on the card.
+     */
+    function displayStudentInfo(row) {
+        const getCellData = (index) => row[index] || 'មិនមានទិន្នន័យ';
+        studentInfoCard.innerHTML = `
+            <div class="flex flex-col items-center text-center">
+                <div class="w-32 h-32 rounded-full mb-4 overflow-hidden border-4 border-cyan-500 shadow-lg">
+                    <img src="${getCellData(COL_INDEX.IMAGE_URL)}" alt="រូបថតនិស្សិត" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/128x128/4A5568/A0AEC0?text=No+Image';">
+                </div>
+                <h2 class="text-2xl font-bold text-white">${getCellData(COL_INDEX.NAME_LATIN)}</h2>
+                <p class="text-lg text-cyan-300">${getCellData(COL_INDEX.NAME_KHMER)}</p>
+                <p class="text-sm text-gray-400 mt-1">អត្តលេខ: ${getCellData(COL_INDEX.ID)}</p>
+            </div>
+            <div class="border-t border-gray-600 my-4"></div>
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between"><span class="font-semibold text-gray-400">ជំនាន់:</span><span class="font-medium text-right">${getCellData(COL_INDEX.GENERATION)}</span></div>
+                <div class="flex justify-between"><span class="font-semibold text-gray-400">ឆ្នាំសិក្សា:</span><span class="font-medium text-right">${getCellData(COL_INDEX.YEAR)}</span></div>
+                <div class="flex justify-between"><span class="font-semibold text-gray-400">ក្រុម:</span><span class="font-medium text-right">${getCellData(COL_INDEX.GROUP)}</span></div>
+                <div class="flex justify-between"><span class="font-semibold text-gray-400">ថ្នាក់:</span><span class="font-medium text-right">${getCellData(COL_INDEX.CLASS)}</span></div>
+                <div class="flex justify-between"><span class="font-semibold text-gray-400">ផ្នែកការងារ:</span><span class="font-medium text-right">${getCellData(COL_INDEX.DEPARTMENT)}</span></div>
+                <div class="flex justify-between"><span class="font-semibold text-gray-400">ភេទ:</span><span class="font-medium text-right">${getCellData(COL_INDEX.GENDER)}</span></div>
+            </div>`;
+        studentInfoCard.classList.remove('hidden');
+    }
 
-    </script>
+    function findStudentById(idToSearch) {
+        if (!idToSearch) {
+            statusMessage.textContent = 'សូមបញ្ចូលអត្តលេខនិស្សិត។';
+            return;
+        }
+        const targetId = idToSearch.trim().toUpperCase();
+        const studentRow = studentDataCache.find(row => row[COL_INDEX.ID] && row[COL_INDEX.ID].toUpperCase() === targetId);
+
+        if (studentRow) {
+            displayStudentInfo(studentRow);
+            statusMessage.textContent = '';
+        } else {
+            statusMessage.textContent = `រកមិនឃើញនិស្សិតមានអត្តលេខ "${idToSearch}" ទេ។`;
+            studentInfoCard.classList.add('hidden');
+        }
+    }
+    
+    async function startCamera(mode) {
+        try {
+            currentStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: mode }
+            });
+            video.srcObject = currentStream;
+            cameraModal.classList.remove('hidden');
+            cameraModal.classList.add('flex');
+        } catch (err) {
+            console.error("Camera Error:", err);
+            statusMessage.textContent = "មិនអាចចូលប្រើកាមេរ៉ាបានទេ។";
+        }
+    }
+
+    video.addEventListener('play', () => {
+        const displaySize = { width: video.clientWidth, height: video.clientHeight };
+        faceapi.matchDimensions(overlay, displaySize);
+
+        scanInterval = setInterval(async () => {
+            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+            const resizedDetections = faceapi.resizeResults(detections, displaySize);
+            
+            overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
+            faceapi.draw.drawDetections(overlay, resizedDetections);
+            
+            if (detections.length > 0 && faceMatcher) {
+                scanStatus.textContent = "រកឃើញមុខ! កំពុងផ្ទៀងផ្ទាត់...";
+                const bestMatch = detections.map(d => faceMatcher.findBestMatch(d.descriptor))
+                                            .sort((a,b) => a.distance - b.distance)[0];
+                
+                if (bestMatch && bestMatch.label !== 'unknown') {
+                    const studentRow = studentDataCache.find(row => row[COL_INDEX.ID] === bestMatch.label);
+                    if (studentRow) {
+                        displayStudentInfo(studentRow);
+                        stopCamera();
+                    }
+                } else {
+                    scanStatus.textContent = "មិនស្គាល់មុខ, សូមព្យាយាមម្តងទៀត";
+                }
+            } else {
+                 scanStatus.textContent = "កំពុងស្វែងរកមុខ...";
+            }
+        }, 300);
+    });
+    
+    function stopCamera() {
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+        }
+        clearInterval(scanInterval);
+        cameraModal.classList.add('hidden');
+        cameraModal.classList.remove('flex');
+    }
+    
+    async function handleImageUpload(event) {
+        if (!faceMatcher) {
+            statusMessage.textContent = 'ប្រព័ន្ធមិនទាន់រួចរាល់ទេ, សូមរង់ចាំ...';
+            return;
+        }
+        const file = event.target.files[0];
+        if (!file) return;
+
+        statusMessage.textContent = 'កំពុងវិភាគរូបភាព...';
+        studentInfoCard.classList.add('hidden');
+
+        const image = await faceapi.bufferToImage(file);
+        const detections = await faceapi.detectSingleFace(image, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+
+        if (detections) {
+            const bestMatch = faceMatcher.findBestMatch(detections.descriptor);
+            if (bestMatch && bestMatch.label !== 'unknown') {
+                const studentRow = studentDataCache.find(row => row[COL_INDEX.ID] === bestMatch.label);
+                displayStudentInfo(studentRow);
+                statusMessage.textContent = 'រកឃើញព័ត៌មាន!';
+            } else {
+                statusMessage.textContent = 'រកមិនឃើញទិន្នន័យដែលត្រូវគ្នាទេ។';
+            }
+        } else {
+            statusMessage.textContent = 'រកមិនឃើញមុខនៅក្នុងរូបភាពទេ។';
+        }
+    }
+    
+    // --- Event Listeners ---
+    searchButton.addEventListener('click', () => findStudentById(studentIdInput.value));
+    studentIdInput.addEventListener('keyup', (e) => e.key === 'Enter' && findStudentById(studentIdInput.value));
+    scanFaceButton.addEventListener('click', () => startCamera(facingMode));
+    closeModalButton.addEventListener('click', stopCamera);
+    switchCameraButton.addEventListener('click', () => {
+        facingMode = facingMode === 'user' ? 'environment' : 'user';
+        stopCamera();
+        setTimeout(() => startCamera(facingMode), 100);
+    });
+    uploadImageButton.addEventListener('click', () => imageUploadInput.click());
+    imageUploadInput.addEventListener('change', handleImageUpload);
+
+</script>
 </body>
 </html>
+
+
+
+
 
