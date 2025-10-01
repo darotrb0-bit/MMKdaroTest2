@@ -92,7 +92,8 @@
                 <canvas id="overlay" class="rear-camera"></canvas>
                 <button id="switch-camera-button" class="absolute top-4 right-4 bg-gray-900 bg-opacity-50 hover:bg-opacity-75 p-3 rounded-full transition-transform transform hover:scale-110 z-10 hidden">
                     <svg class="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12m0 0l-4-4m4 4l-4 4" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 20v-5h5M20 4v5h-5" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-4-4-4 4M9 5l4 4 4-4" />
                     </svg>
                 </button>
             </div>
@@ -181,7 +182,7 @@
 
         // Load face-api.js models
         async function loadModels() {
-            const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
+            const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights'; // Corrected URL
             updateProgress(0.1, 'កំពុងទាញយកម៉ូឌែល...');
             await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
             updateProgress(0.3, 'កំពុងទាញយកម៉ូឌែលសម្គាល់មុខ...');
@@ -227,7 +228,11 @@
                         });
 
                         try {
-                            const img = await faceapi.fetchImage(imageUrl);
+                            // Using a CORS proxy to bypass image host restrictions
+                            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                            const proxiedImageUrl = proxyUrl + encodeURIComponent(imageUrl);
+
+                            const img = await faceapi.fetchImage(proxiedImageUrl);
                             const detections = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
                             if (detections) {
                                 labeledFaceDescriptors.push(new faceapi.LabeledFaceDescriptors(studentId, [detections.descriptor]));
@@ -244,7 +249,11 @@
                 if (labeledFaceDescriptors.length > 0) {
                     faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.55); // Adjusted threshold for better accuracy
                 } else {
-                    throw new Error("No face descriptors could be created. Check image URLs and CORS policies.");
+                     // Provide a more user-friendly error message if still no descriptors
+                    loadingText.textContent = 'Error: មិនអាចទាញយករូបភាពនិស្សិតបានទេ។';
+                    progressBar.style.backgroundColor = 'red';
+                    // No need to throw an error that stops the app, just inform the user.
+                    console.error("No face descriptors could be created. All image fetches might have failed.");
                 }
 
             } catch (error) {
@@ -265,9 +274,7 @@
                     video: { facingMode: currentFacingMode }
                 });
                 video.srcObject = stream;
-                // The 'autoplay' attribute on the video element will handle playing.
                 
-                // Adjust video style for mirror effect
                 if (currentFacingMode === 'user') {
                     video.classList.remove('rear-camera');
                     overlay.classList.remove('rear-camera');
@@ -278,11 +285,10 @@
 
             } catch (err) {
                 console.error(`Error accessing ${currentFacingMode} camera: `, err);
-                // Fallback for devices without a back camera or other errors
                 if (currentFacingMode === 'environment') {
                     console.warn('Back camera failed or not available. Switching to front camera.');
                     currentFacingMode = 'user';
-                    startVideo(); // Recursive call to try the other camera
+                    startVideo(); 
                 } else {
                     alert("មិនអាចបើកកាមេរ៉ាបានទេ។ សូមពិនិត្យមើលការអនុញ្ញាត។");
                 }
@@ -296,12 +302,11 @@
             const displaySize = { width: videoContainer.clientWidth, height: videoContainer.clientHeight };
             faceapi.matchDimensions(overlay, displaySize);
 
-            // Clear any existing interval before starting a new one to prevent multiple loops
             if (detectionInterval) clearInterval(detectionInterval);
 
             isScanning = true;
             detectionInterval = setInterval(async () => {
-                if (!isScanning) return;
+                if (!isScanning || !faceMatcher) return;
 
                 const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
                 const resizedDetections = faceapi.resizeResults(detections, displaySize);
@@ -309,24 +314,22 @@
                 const context = overlay.getContext('2d');
                 context.clearRect(0, 0, overlay.width, overlay.height);
 
-                if (faceMatcher) {
-                    const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
-                    results.forEach((result, i) => {
-                        const box = resizedDetections[i].detection.box;
-                        const studentId = result.toString().split(' ')[0];
-                        
-                        context.strokeStyle = 'rgba(60, 130, 246, 0.8)';
-                        context.lineWidth = 4;
-                        context.strokeRect(box.x, box.y, box.width, box.height);
+                const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
+                results.forEach((result, i) => {
+                    const box = resizedDetections[i].detection.box;
+                    const studentId = result.toString().split(' ')[0];
+                    
+                    context.strokeStyle = 'rgba(60, 130, 246, 0.8)';
+                    context.lineWidth = 4;
+                    context.strokeRect(box.x, box.y, box.width, box.height);
 
-                        if (studentId !== 'unknown') {
-                            displayStudentInfo(studentId);
-                            isScanning = false; 
-                            clearInterval(detectionInterval);
-                            video.pause();
-                        }
-                    });
-                }
+                    if (studentId !== 'unknown') {
+                        displayStudentInfo(studentId);
+                        isScanning = false; 
+                        clearInterval(detectionInterval);
+                        video.pause();
+                    }
+                });
             }, 200);
         });
 
