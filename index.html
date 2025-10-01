@@ -123,11 +123,6 @@
         .animated-border-box {
             position: relative; z-index: 1; padding: 2px;
         }
-        .animated-border-box::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: conic-gradient(from var(--angle), transparent 25%, #ca8a04, #fde047 50%, #ca8a04, transparent 75%);
-            animation: spin 4s linear infinite; z-index: -2; filter: blur(20px) brightness(1.8);
-        }
          .animated-border-box::after {
             content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: #081108; z-index: -1;
@@ -149,8 +144,9 @@
         .data-scramble { position: relative; }
         .data-label { color: #86efac; text-shadow: 0 0 3px rgba(134, 239, 172, 0.4); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; }
         .corner-brackets {
-            position: absolute; width: 25px; height: 25px; border-color: #ca8a04; border-style: solid; opacity: 0.8; text-shadow: 0 0 8px #facc15;
-            animation: pulse-corners 2s infinite ease-in-out;
+            position: absolute; width: 25px; height: 25px; 
+            border-style: solid;
+            animation: pulse-corners-glow 2.5s infinite ease-in-out;
         }
         .corner-brackets.top-left { top: -4px; left: -4px; border-width: 3px 0 0 3px; }
         .corner-brackets.top-right { top: -4px; right: -4px; border-width: 3px 3px 0 0; animation-delay: 0.2s; }
@@ -158,29 +154,52 @@
         .corner-brackets.bottom-right { bottom: -4px; right: -4px; border-width: 0 3px 3px 0; animation-delay: 0.6s; }
         .data-scramble, .text-yellow-300, .text-yellow-500 { text-shadow: 0 0 8px rgba(250, 204, 21, 0.5); }
         
-        #modal-container::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: #86efac;
-            box-shadow: 0 0 10px #86efac, 0 0 20px #86efac;
-            animation: scan-modal 3.5s linear infinite;
-            animation-delay: 0.5s;
-            z-index: 10;
-            opacity: 0.4;
+        @keyframes pulse-corners-glow {
+            0%, 100% {
+                opacity: 0.7;
+                transform: scale(1);
+                border-color: #ca8a04;
+                box-shadow: 0 0 6px rgba(250, 204, 21, 0.4);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+                border-color: #fde047;
+                box-shadow: 0 0 16px rgba(250, 204, 21, 0.8);
+            }
         }
-        @keyframes scan-modal {
-            0% { top: 0; opacity: 0; }
-            10% { opacity: 0.4; }
-            90% { opacity: 0.4; }
-            100% { top: 100%; opacity: 0; }
+        
+        /* NEW STYLES for the redesigned info modal */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
         }
-        @keyframes pulse-corners {
-            0%, 100% { opacity: 0.8; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.05); }
+        .info-block {
+            background-color: rgba(0, 255, 0, 0.05);
+            padding: 0.75rem;
+            border-left: 3px solid #4ade80;
         }
+        .info-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #86efac;
+            opacity: 0.8;
+            margin-bottom: 0.25rem;
+        }
+        .info-value {
+            font-family: 'Fira Code', monospace;
+            color: #bef264;
+            text-shadow: 0 0 5px rgba(190, 242, 100, 0.5);
+        }
+        .hr-deco {
+            border: none;
+            height: 1px;
+            background-image: linear-gradient(to right, transparent, rgba(134, 239, 172, 0.5), transparent);
+            margin: 1rem 0;
+        }
+
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -267,7 +286,8 @@
             rainDrops[i]++;
         });
     };
-    setInterval(drawMatrix, 33);
+    // PERFORMANCE OPTIMIZATION: Reduced the frequency of the matrix animation
+    setInterval(drawMatrix, 70); 
     window.addEventListener('resize', () => { 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -300,8 +320,8 @@
 
     // --- Configuration & DOM Elements ---
     const API_KEY = 'AIzaSyC6E9ON7DsgkMZEc6obtWehyqzGWwd_EII'; // WARNING: Exposing API keys on the client-side is a security risk.
-    const SHEET_ID = '1_Kgl8UQXRsVATt_BOHYQjVWYKkRIBA12R-qnsBoSUzc';
-    const SHEET_NAME = 'បញ្ជឺឈ្មោះរួម';
+    const SHEET_ID = '1eRyPoifzyvB4oBmruNyXcoKMKPRqjk6xDD6-bPNW6pc';
+    const SHEET_NAME = 'DIList';
     const DATA_RANGE = 'C9:AA';
     const FACEAPI_MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
     const TINY_FACE_DETECTOR_OPTIONS = new faceapi.TinyFaceDetectorOptions({ inputSize: 224 });
@@ -327,6 +347,7 @@
     let faceMatcher = null;
     let currentStream;
     let scanInterval;
+    let isDetecting = false; // Flag to prevent overlapping detections
     let facingMode = 'environment';
 
     const COL_INDEX = { GENERATION: 0, YEAR: 1, ID: 2, GROUP: 4, NAME_KHMER: 9, NAME_LATIN: 10, GENDER: 11, CLASS: 15, DEPARTMENT: 16, IMAGE_URL: 24 };
@@ -474,35 +495,37 @@
     }
 
     function displayStudentInfo(row) {
+        playSound(successSound, ['C5', 'G5'], '8n'); // Sound on modal display
         modalStudentId.textContent = row[COL_INDEX.ID] || 'N/A';
         infoModalContent.innerHTML = `
             <div class="flex flex-col md:flex-row items-start space-y-4 md:space-y-0 md:space-x-6">
-                 <div class="animated-border-box-photo mx-auto md:mx-0">
-                     <img src="${row[COL_INDEX.IMAGE_URL]}" onerror="this.src='https://placehold.co/144x160/0a140a/a3e635?text=NO+IMAGE';" alt="Student Photo" class="w-36 h-40 object-cover">
+                <div class="animated-border-box-photo mx-auto md:mx-0">
+                    <img src="${row[COL_INDEX.IMAGE_URL]}" onerror="this.src='https://placehold.co/144x160/0a140a/a3e635?text=NO+IMAGE';" alt="Student Photo" class="w-36 h-40 object-cover">
                 </div>
-                <div class="flex-grow w-full space-y-4">
+                <div class="flex-grow w-full space-y-3">
                     <div class="data-line">
                         <p class="data-label">SUBJECT NAME</p>
-                        <h3 class="data-scramble text-xl text-green-300 font-bold" data-final="${row[COL_INDEX.NAME_KHMER] || 'N/A'}"></h3>
-                        <p class="data-scramble font-mono text-green-400" data-final="${row[COL_INDEX.NAME_LATIN] || 'N/A'}"></p>
+                        <h3 class="data-scramble text-2xl text-green-300 font-bold" data-final="${row[COL_INDEX.NAME_KHMER] || 'N/A'}"></h3>
+                        <p class="data-scramble text-lg font-mono text-green-400" data-final="${row[COL_INDEX.NAME_LATIN] || 'N/A'}"></p>
                     </div>
-                     <div class="data-line">
-                        <p class="data-label">BIOMETRIC DATA</p>
-                         <p class="data-scramble font-mono" data-final="GENDER: ${row[COL_INDEX.GENDER] || 'N/A'}"></p>
+
+                    <hr class="hr-deco data-line">
+
+                    <div class="info-grid">
+                        <div class="info-block data-line">
+                            <p class="info-label">Biometric Data</p>
+                            <p class="info-value data-scramble" data-final="Gender: ${row[COL_INDEX.GENDER] || 'N/A'}"></p>
+                        </div>
+                        <div class="info-block data-line">
+                            <p class="info-label">Cohort Info</p>
+                            <p class="info-value data-scramble" data-final="Group: ${row[COL_INDEX.GROUP] || 'N/A'}"></p>
+                            <p class="info-value data-scramble" data-final="Gen: ${row[COL_INDEX.GENERATION] || 'N/A'} | Year: ${row[COL_INDEX.YEAR] || 'N/A'}"></p>
+                        </div>
                     </div>
-                     <hr class="border-yellow-800/50 my-1">
-                     <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm font-mono">
-                        <div class="data-line">
-                            <p class="data-label">ACADEMIC RECORD</p>
-                            <p class="data-scramble" data-final="DEPARTMENT: ${row[COL_INDEX.DEPARTMENT] || 'N/A'}"></p>
-                            <p class="data-scramble" data-final="CLASS: ${row[COL_INDEX.CLASS] || 'N/A'}"></p>
-                        </div>
-                         <div class="data-line">
-                            <p class="data-label">COHORT INFO</p>
-                            <p class="data-scramble" data-final="GROUP: ${row[COL_INDEX.GROUP] || 'N/A'}"></p>
-                            <p class="data-scramble" data-final="GENERATION: ${row[COL_INDEX.GENERATION] || 'N/A'}"></p>
-                            <p class="data-scramble" data-final="YEAR: ${row[COL_INDEX.YEAR] || 'N/A'}"></p>
-                        </div>
+                    <div class="info-block data-line w-full">
+                        <p class="info-label">Academic Record</p>
+                        <p class="info-value data-scramble" data-final="Department: ${row[COL_INDEX.DEPARTMENT] || 'N/A'}"></p>
+                        <p class="info-value data-scramble" data-final="Class: ${row[COL_INDEX.CLASS] || 'N/A'}"></p>
                     </div>
                 </div>
             </div>`;
@@ -533,7 +556,7 @@
 
         if (studentRow) {
             typewriterEffect(statusMessage, `ស្វែងរក​ឃើញ: កំពុងបង្ហាញទិន្នន័យសម្រាប់ ${targetId}`);
-            playSound(successSound, ['C5', 'E5', 'G5'], '8n');
+            // Sound is now played inside displayStudentInfo
             displayStudentInfo(studentRow);
         } else {
             typewriterEffect(statusMessage, `ស្វែងរក​មិន​ឃើញ: អត្តលេខ "${idToSearch}" មិនមានក្នុងប្រព័ន្ធ`);
@@ -561,7 +584,10 @@
         scanStatus.textContent = "កំពុងស្វែងរកគោលដៅ...";
 
         scanInterval = setInterval(async () => {
-            if (!faceMatcher) return;
+            // PERFORMANCE OPTIMIZATION: Prevent new detections from starting if one is already running
+            if (!faceMatcher || isDetecting) return;
+            isDetecting = true;
+            
             const detections = await faceapi.detectSingleFace(video, TINY_FACE_DETECTOR_OPTIONS).withFaceLandmarks().withFaceDescriptor();
             
             if (detections) {
@@ -572,12 +598,17 @@
                     const studentRow = studentDataCache.find(row => row[COL_INDEX.ID] === bestMatch.label);
                     if (studentRow) {
                         typewriterEffect(statusMessage, `រកឃើញមុខត្រូវគ្នា: ${bestMatch.label}`);
-                        playSound(successSound, ['A5', 'C6', 'E6'], '8n');
+                        // Sound is now played inside displayStudentInfo
                         displayStudentInfo(studentRow);
                         stopCamera();
                     }
-                } else { scanStatus.textContent = "មិនស្គាល់គោលដៅ. កំពុងព្យាយាមម្តងទៀត..."; }
-            } else { scanStatus.textContent = "កំពុងស្វែងរកគោលដៅ..."; }
+                } else { 
+                    scanStatus.textContent = "មិនស្គាល់គោលដៅ. កំពុងព្យាយាមម្តងទៀត..."; 
+                }
+            } else { 
+                scanStatus.textContent = "កំពុងស្វែងរកគោលដៅ..."; 
+            }
+            isDetecting = false; // Allow the next detection to start
         }, 500);
     });
     
@@ -614,9 +645,8 @@
             const bestMatch = faceMatcher.findBestMatch(detections.descriptor);
             if (bestMatch && bestMatch.label !== 'unknown') {
                 const studentRow = studentDataCache.find(row => row[COL_INDEX.ID] === bestMatch.label);
-                displayStudentInfo(studentRow);
                 typewriterEffect(statusMessage, `រកឃើញមុខត្រូវគ្នា: ${bestMatch.label}`);
-                playSound(successSound, ['C5', 'E5', 'G5'], '8n');
+                displayStudentInfo(studentRow);
             } else {
                 typewriterEffect(statusMessage, 'ការវិភាគបានបញ្ចប់: រកមិនឃើញមុខត្រូវគ្នា');
                 playSound(errorSound, 'E2', '4n');
