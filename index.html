@@ -274,9 +274,11 @@
             const READ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&range=${RANGE}`;
             const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxCekjXECxkU-hmWzik1wChzCF7YpWxb7ZA1RHazuxMaUInNRU2nZoe7uh0sdzkXxr6/exec';
             const STORAGE_KEY = 'activeBreaks';
+            const LAST_ACTION_STORAGE_KEY = 'lastActionTimestamps';
             const DEFAULT_AVATAR = 'https://i.stack.imgur.com/34AD2.jpg';
             const OVERDUE_MINUTES = 15;
             const CONSECUTIVE_MATCHES_REQUIRED = 3;
+            const COOLDOWN_MINUTES = 10;
 
             // --- DOM ELEMENTS ---
             const employeeInput = document.getElementById('employee-input');
@@ -476,7 +478,7 @@
                     });
                     faceVideo.srcObject = videoStream;
                     faceVideo.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
-                    faceCanvas.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
+                    // faceCanvas.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)'; // REMOVED TO FIX TEXT MIRRORING
                     faceScannerModal.style.display = 'flex';
 
                     faceVideo.addEventListener('play', () => {
@@ -492,6 +494,14 @@
 
                             const detections = await faceapi.detectAllFaces(faceVideo, tinyFaceDetectorOptions).withFaceLandmarks().withFaceDescriptors();
                             const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                            
+                            // Manually flip the detection box horizontally for the front camera view
+                            if (currentFacingMode === 'user') {
+                                resizedDetections.forEach(d => {
+                                    d.detection.box._x = faceCanvas.width - d.detection.box._x - d.detection.box._width;
+                                });
+                            }
+
                             const context = faceCanvas.getContext('2d');
                             context.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
                             
@@ -501,7 +511,10 @@
                                 
                                 new faceapi.draw.DrawBox(largestDetection.detection.box, { 
                                     label: bestMatch.label === 'unknown' ? 'មិនស្គាល់' : allEmployeeData.find(e => e.id === bestMatch.label)?.name || bestMatch.label,
-                                    boxColor: bestMatch.label === 'unknown' ? 'red' : 'green'
+                                    boxColor: bestMatch.label === 'unknown' ? 'red' : 'green',
+                                    drawLabelOptions: {
+                                        fontFamily: 'Battambang'
+                                    }
                                 }).draw(faceCanvas);
                                 
                                 if (bestMatch.label !== 'unknown') {
@@ -605,6 +618,20 @@
             };
             
             const handleCheckOut = async (employeeId) => {
+                // Cooldown Check
+                const timestamps = JSON.parse(localStorage.getItem(LAST_ACTION_STORAGE_KEY)) || {};
+                const lastActionTime = timestamps[employeeId];
+                if (lastActionTime) {
+                    const now = new Date().getTime();
+                    const diffMinutes = (now - lastActionTime) / 60000;
+                    if (diffMinutes < COOLDOWN_MINUTES) {
+                        const remainingTime = Math.ceil(COOLDOWN_MINUTES - diffMinutes);
+                        const message = `សូមរង់ចាំ ${remainingTime} នាទីទៀតមុននឹងអាចស្កេនចេញបាន។`;
+                        if(isLiveModeActive) showScanOverlayMessage(message, true); else alert(message);
+                        return; 
+                    }
+                }
+
                 const selectedEmployee = activeEmployeeData.find(emp => emp.id === employeeId);
                 if (!selectedEmployee) {
                     const message = 'បុគ្គលិកនេះមិនមានក្នុងវេននេះទេ';
@@ -658,6 +685,12 @@
                 if (saveSuccess) {
                     const updatedBreaks = breaks.filter(b => b.id !== employeeId);
                     saveBreaksToStorage(updatedBreaks);
+
+                    // Save the timestamp of this successful check-in for the cooldown
+                    const timestamps = JSON.parse(localStorage.getItem(LAST_ACTION_STORAGE_KEY)) || {};
+                    timestamps[employeeId] = new Date().getTime();
+                    localStorage.setItem(LAST_ACTION_STORAGE_KEY, JSON.stringify(timestamps));
+
                     renderBreakList();
                     const successMessage = `បុគ្គលិក ${breakEntry.name} បានស្កេនចូលមកវិញត្រឹមត្រូវ`;
                     speak(successMessage);
@@ -724,8 +757,11 @@
                     }
                 });
                 noBreaksMessage.style.display = visibleCount === 0 && getBreaksFromStorage().length > 0 ? 'block' : 'none';
-                if(visibleCount > 0) noBreaksMessage.textContent = "មិនមានលទ្ធផលត្រូវគ្នានឹងការស្វែងរកទេ។";
-                else noBreaksMessage.textContent = "មិនមានបុគ្គលិកកំពុងសម្រាកទេ។";
+                if(getBreaksFromStorage().length > 0 && visibleCount === 0) {
+                    noBreaksMessage.textContent = "មិនមានលទ្ធផលត្រូវគ្នានឹងការស្វែងរកទេ។";
+                } else {
+                    noBreaksMessage.textContent = "មិនមានបុគ្គលិកកំពុងសម្រាកទេ។";
+                }
 
             };
 
@@ -842,3 +878,4 @@
     </script>
 </body>
 </html>
+
