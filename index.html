@@ -121,8 +121,8 @@
         #video-container {
             position: relative; width: 300px; height: 300px; margin: 20px auto;
             border-radius: 50%; overflow: hidden; border: 3px solid var(--info-color);
-            box-shadow: 0 0 20px rgba(13, 202, 240, 0.7); animation: pulse-glow 2s infinite alternate;
             transition: border-color 0.5s, box-shadow 0.5s;
+            animation: pulse-glow 2s infinite alternate, radar-pulse 2.5s infinite;
         }
         #video-container.success-flash { border-color: var(--success-color); box-shadow: 0 0 30px rgba(25, 135, 84, 1); }
         #video-container.error-flash { border-color: var(--danger-color); box-shadow: 0 0 30px rgba(220, 53, 69, 1); }
@@ -193,6 +193,10 @@
         @keyframes pulse-glow {
             from { box-shadow: 0 0 10px rgba(13, 202, 240, 0.5); }
             to { box-shadow: 0 0 30px rgba(13, 202, 240, 1), 0 0 10px rgba(255, 255, 255, 0.5) inset; }
+        }
+        @keyframes radar-pulse {
+            0% { box-shadow: 0 0 0 0px rgba(13, 202, 240, 0.5); }
+            100% { box-shadow: 0 0 0 25px rgba(13, 202, 240, 0); }
         }
         @keyframes scan-effect {
             0% { transform: translateY(0%); } 100% { transform: translateY(200%); }
@@ -299,9 +303,11 @@
             const READ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&range=${RANGE}`;
             const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxCekjXECxkU-hmWzik1wChzCF7YpWxb7ZA1RHazuxMaUInNRU2nZoe7uh0sdzkXxr6/exec';
             const STORAGE_KEY = 'activeBreaks';
+            const LAST_ACTION_STORAGE_KEY = 'lastActionTimestamps';
             const DEFAULT_AVATAR = 'https://i.stack.imgur.com/34AD2.jpg';
             const OVERDUE_MINUTES = 15;
             const CONSECUTIVE_MATCHES_REQUIRED = 3;
+            const COOLDOWN_MINUTES = 1;
 
             // --- DOM ELEMENTS ---
             const employeeInput = document.getElementById('employee-input');
@@ -644,6 +650,20 @@
                     console.log(`Already processing check-out for ${employeeId}. Ignoring duplicate request.`);
                     return;
                 }
+
+                const timestamps = JSON.parse(localStorage.getItem(LAST_ACTION_STORAGE_KEY)) || {};
+                const lastActionTime = timestamps[employeeId];
+                if (lastActionTime) {
+                    const now = new Date().getTime();
+                    const diffMinutes = (now - lastActionTime) / 60000;
+                    if (diffMinutes < COOLDOWN_MINUTES) {
+                        const remainingSeconds = Math.ceil((COOLDOWN_MINUTES - diffMinutes) * 60);
+                        const message = `សូមរង់ចាំ ${remainingSeconds} វិនាទីទៀត...`;
+                        if(isLiveModeActive) showScanOverlayMessage(message, true); else alert(message);
+                        return;
+                    }
+                }
+
                 try {
                     processingIds.add(employeeId);
 
@@ -669,6 +689,11 @@
                     breaks.push(newBreak);
                     saveBreaksToStorage(breaks);
                     renderBreakList();
+
+                    const newTimestamps = JSON.parse(localStorage.getItem(LAST_ACTION_STORAGE_KEY)) || {};
+                    newTimestamps[employeeId] = new Date().getTime();
+                    localStorage.setItem(LAST_ACTION_STORAGE_KEY, JSON.stringify(newTimestamps));
+
                     const successMessage = `បុគ្គលិក ${selectedEmployee.name} បានស្កេនចេញត្រឹមត្រូវ`;
                     speak(successMessage);
                     if(isLiveModeActive) showScanOverlayMessage(successMessage);
@@ -679,17 +704,37 @@
             };
 
             const handleCheckIn = async (employeeId) => {
+                const timestamps = JSON.parse(localStorage.getItem(LAST_ACTION_STORAGE_KEY)) || {};
+                const lastActionTime = timestamps[employeeId];
+                if (lastActionTime) {
+                    const now = new Date().getTime();
+                    const diffMinutes = (now - lastActionTime) / 60000;
+                    if (diffMinutes < COOLDOWN_MINUTES) {
+                        const remainingSeconds = Math.ceil((COOLDOWN_MINUTES - diffMinutes) * 60);
+                        const message = `សូមរង់ចាំ ${remainingSeconds} វិនាទីទៀត...`;
+                        if(isLiveModeActive) showScanOverlayMessage(message, true); else alert(message);
+                        return;
+                    }
+                }
+
                 if (processingIds.has(employeeId)) {
                     console.log(`Already processing check-in for ${employeeId}. Ignoring duplicate request.`);
                     return;
                 }
+
+                const breaks = getBreaksFromStorage();
+                const breakEntry = breaks.find(b => b.id === employeeId);
+                if (!breakEntry) return;
+
+                processingIds.add(employeeId);
+
+                const updatedBreaks = breaks.filter(b => b.id !== employeeId);
+                saveBreaksToStorage(updatedBreaks);
+                renderBreakList();
+                speak(`បុគ្គលិក ${breakEntry.name} បានស្កេនចូល, កំពុងរក្សាទុក`);
+                if(isLiveModeActive) showScanOverlayMessage(`បានស្កេនចូល: ${breakEntry.name}`);
+
                 try {
-                    processingIds.add(employeeId);
-
-                    const breaks = getBreaksFromStorage();
-                    const breakEntry = breaks.find(b => b.id === employeeId);
-                    if (!breakEntry) return;
-
                     const checkOutTime = new Date(breakEntry.checkOutTime);
                     const checkInTime = new Date();
                     const diffMs = checkInTime - checkOutTime;
@@ -708,18 +753,28 @@
                     const saveSuccess = await saveData(dataToSave);
 
                     if (saveSuccess) {
-                        const updatedBreaks = breaks.filter(b => b.id !== employeeId);
-                        saveBreaksToStorage(updatedBreaks);
-
-                        renderBreakList();
-                        const successMessage = `បុគ្គលិក ${breakEntry.name} បានស្កេនចូលមកវិញត្រឹមត្រូវ`;
-                        speak(successMessage);
-                        if(isLiveModeActive) showScanOverlayMessage(successMessage);
+                        const newTimestamps = JSON.parse(localStorage.getItem(LAST_ACTION_STORAGE_KEY)) || {};
+                        newTimestamps[employeeId] = new Date().getTime();
+                        localStorage.setItem(LAST_ACTION_STORAGE_KEY, JSON.stringify(newTimestamps));
+                        console.log("Save successful for " + employeeId);
                     } else {
-                        const errorMessage = 'រក្សាទុកទិន្នន័យមិនสำเร็จ! សូមព្យាយាមម្តងទៀត។';
+                        console.error("Save failed. Reverting UI for " + employeeId);
+                        const currentBreaks = getBreaksFromStorage();
+                        currentBreaks.push(breakEntry);
+                        saveBreaksToStorage(currentBreaks);
+                        renderBreakList();
+                        const errorMessage = 'រក្សាទុកទិន្នន័យមិនสำเร็จ!';
                         if(isLiveModeActive) showScanOverlayMessage(errorMessage, true); else alert(errorMessage);
                     }
-                } finally {
+                } catch (error) {
+                    console.error("Critical error during save for " + employeeId, error);
+                    const currentBreaks = getBreaksFromStorage();
+                    currentBreaks.push(breakEntry);
+                    saveBreaksToStorage(currentBreaks);
+                    renderBreakList();
+                    alert('មានបញ្ហាធ្ងន់ធ្ងរកើតឡើងពេលកំពុងរក្សាទុក។');
+                }
+                finally {
                     processingIds.delete(employeeId);
                 }
             };
