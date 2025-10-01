@@ -3,359 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>កម្មវិធីស្វែងរកព័ត៌មាននិស្សិត</title>
+    <title>ប្រព័ន្ធស្វែងរកនិស្សិតដោយសម្គាល់ផ្ទៃមុខ</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
-    <!-- សម្រាប់ Face Recognition -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Koulen&family=Moul&family=Noto+Sans+Khmer:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Kantumruy Pro', sans-serif;
+            font-family: 'Noto Sans Khmer', sans-serif;
             touch-action: manipulation;
         }
-        #video, #canvas {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border-radius: 1rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        .koulen-font {
+            font-family: 'Koulen', sans-serif;
         }
-        #camera-container {
+        #video-container {
             position: relative;
             width: 100%;
-            padding-top: 100%; /* 1:1 Aspect Ratio */
-            max-width: 500px;
+            max-width: 640px;
+            aspect-ratio: 3 / 4;
             margin: auto;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+            transform: scaleX(-1); /* Mirror the video feed */
         }
-        .loader {
-            border: 5px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 5px solid #3498db;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
+        video, canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        #student-info-card {
+            transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        #student-info-card.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .loader-dots div {
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .loader-dots .dot-1 { animation-delay: -0.32s; }
+        .loader-dots .dot-2 { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
         }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div id="main-content" class="w-full max-w-xl text-center">
-        <h1 class="text-3xl font-bold mb-2">ស្វែងរកព័ត៌មាននិស្សិត</h1>
-        <p class="text-gray-400 mb-4">សូមដាក់មុខរបស់អ្នកនៅចំកាមេរ៉ា</p>
-
-        <div id="camera-container" class="bg-gray-800 rounded-2xl overflow-hidden mb-4">
-            <video id="video" autoplay muted playsinline></video>
-            <canvas id="canvas"></canvas>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-95 flex flex-col items-center justify-center z-50">
+        <div class="loader-dots relative w-20 h-5">
+            <div class="dot-1 absolute w-5 h-5 bg-blue-400 rounded-full"></div>
+            <div class="dot-2 absolute w-5 h-5 bg-blue-400 rounded-full left-8"></div>
+            <div class="dot-3 absolute w-5 h-5 bg-blue-400 rounded-full left-16"></div>
         </div>
+        <p id="loading-text" class="mt-6 text-lg text-gray-300 text-center">កំពុងរៀបចំប្រព័ន្ធ...</p>
+    </div>
 
-        <!-- Loading State -->
-        <div id="loading" class="absolute inset-0 bg-gray-900 bg-opacity-90 flex flex-col items-center justify-center z-50">
-            <div class="loader mb-4"></div>
-            <p id="loading-message" class="text-lg">កំពុងរៀបចំ...</p>
-            <p id="loading-progress" class="text-gray-400 mt-2"></p>
+    <!-- Main Content -->
+    <div class="w-full max-w-2xl mx-auto flex flex-col items-center">
+        <h1 class="text-3xl md:text-4xl font-bold mb-2 text-center koulen-font text-blue-300">ប្រព័ន្ធស្វែងរកនិស្សិត</h1>
+        <p class="text-gray-400 mb-6 text-center">សូមដាក់ផ្ទៃមុខរបស់អ្នកឲ្យចំកាមេរ៉ា</p>
+        
+        <div id="video-container" class="bg-gray-800 flex items-center justify-center">
+            <video id="video" playsinline autoplay muted></video>
+            <canvas id="canvas"></canvas>
         </div>
     </div>
 
-    <!-- Student Info Card -->
-    <div id="info-card" class="hidden fixed inset-0 bg-black bg-opacity-70 z-40 flex items-center justify-center p-4">
-        <div class="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm transform transition-all scale-95 opacity-0">
-            <div class="text-center mb-4">
-                <img id="student-photo" src="" alt="Student Photo" class="w-24 h-24 rounded-full mx-auto border-4 border-blue-500 object-cover mb-3">
-                <h2 id="student-name" class="text-2xl font-bold"></h2>
-                <p id="student-id" class="text-gray-400"></p>
-            </div>
-            
-            <div class="space-y-3 text-sm">
-                <div class="flex justify-between">
-                    <span class="font-semibold text-gray-400">អក្សរឡាតាំង:</span>
-                    <span id="student-latin-name" class="font-medium"></span>
-                </div>
-                <hr class="border-gray-700">
-                <div class="flex justify-between">
-                    <span class="font-semibold text-gray-400">ភេទ:</span>
-                    <span id="student-gender" class="font-medium"></span>
-                </div>
-                <hr class="border-gray-700">
-                 <div class="flex justify-between">
-                    <span class="font-semibold text-gray-400">ជំនាន់:</span>
-                    <span id="student-generation" class="font-medium"></span>
-                </div>
-                <hr class="border-gray-700">
-                <div class="flex justify-between">
-                    <span class="font-semibold text-gray-400">ឆ្នាំសិក្សា:</span>
-                    <span id="student-academic-year" class="font-medium"></span>
-                </div>
-                <hr class="border-gray-700">
-                 <div class="flex justify-between">
-                    <span class="font-semibold text-gray-400">ក្រុម:</span>
-                    <span id="student-group" class="font-medium"></span>
-                </div>
-                <hr class="border-gray-700">
-                 <div class="flex justify-between">
-                    <span class="font-semibold text-gray-400">ថ្នាក់:</span>
-                    <span id="student-class" class="font-medium"></span>
-                </div>
-                <hr class="border-gray-700">
-                <div class="flex justify-between">
-                    <span class="font-semibold text-gray-400">ផ្នែកការងារ:</span>
-                    <span id="student-department" class="font-medium"></span>
-                </div>
-            </div>
-
-            <button id="scan-again-btn" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-transform duration-200 active:scale-95">
-                ស្កេនម្តងទៀត
+    <!-- Student Information Card -->
+    <div id="student-info-card" class="fixed bottom-0 left-0 right-0 bg-gray-800 border-t-2 border-blue-400 rounded-t-3xl shadow-2xl p-6 z-40 max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold koulen-font text-blue-300">ព័ត៌មាននិស្សិត</h2>
+            <button id="close-card-btn" class="text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-times-circle fa-2x"></i>
             </button>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3 text-sm">
+            <div class="col-span-2 md:col-span-1 flex items-center">
+                <img id="student-photo" src="https://placehold.co/100x100/334155/E2E8F0?text=Photo" class="w-24 h-24 rounded-full object-cover border-2 border-blue-400 mr-4">
+                <div>
+                    <p class="font-bold text-lg text-white" id="student-name">--</p>
+                    <p class="text-gray-300" id="student-name-latin">--</p>
+                </div>
+            </div>
+            <div>
+                <p class="text-gray-400">អត្តលេខ</p>
+                <p class="font-semibold text-white" id="student-id">--</p>
+            </div>
+            <div>
+                <p class="text-gray-400">ភេទ</p>
+                <p class="font-semibold text-white" id="student-gender">--</p>
+            </div>
+            <div>
+                <p class="text-gray-400">ផ្នែក</p>
+                <p class="font-semibold text-white" id="student-department">--</p>
+            </div>
+             <div>
+                <p class="text-gray-400">ក្រុម</p>
+                <p class="font-semibold text-white" id="student-group">--</p>
+            </div>
+            <div>
+                <p class="text-gray-400">ថ្នាក់</p>
+                <p class="font-semibold text-white" id="student-class">--</p>
+            </div>
+            <div>
+                <p class="text-gray-400">ជំនាន់</p>
+                <p class="font-semibold text-white" id="student-generation">--</p>
+            </div>
+            <div>
+                <p class="text-gray-400">ឆ្នាំសិក្សា</p>
+                <p class="font-semibold text-white" id="student-academic-year">--</p>
+            </div>
         </div>
     </div>
 
 
     <script>
-        // --- CONFIGURATION ---
-        // !!! សំខាន់៖ សូមដាក់ Google Sheets API Key របស់អ្នកនៅទីនេះ
-        const API_KEY = 'AIzaSyC6E9ON7DsgkMZEc6obtWehyqzGWwd_EII'; // <--- សូមប្តូរ API KEY
-        const SPREADSHEET_ID = '1eRyPoifzyvB4oBmruNyXcoKMKPRqjk6xDD6-bPNW6pc';
-        const SHEET_NAME = 'DIList';
-        const DATA_RANGE = 'A9:AA'; // ទាញយកទិន្នន័យទាំងអស់ដើម្បីការពារការខុស index
-        // --- END CONFIGURATION ---
-
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
-        const loadingDiv = document.getElementById('loading');
-        const loadingMessage = document.getElementById('loading-message');
-        const loadingProgress = document.getElementById('loading-progress');
-        const infoCard = document.getElementById('info-card');
-        const scanAgainBtn = document.getElementById('scan-again-btn');
-        
-        let studentData = [];
-        let faceMatcher = null;
-        let detectionInterval = null;
-        let isScanning = false;
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        const studentInfoCard = document.getElementById('student-info-card');
+        const closeCardBtn = document.getElementById('close-card-btn');
 
-        async function setupCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'user' },
-                    audio: false
-                });
-                video.srcObject = stream;
-                return new Promise((resolve) => {
-                    video.onloadedmetadata = () => {
-                        resolve(video);
-                    };
-                });
-            } catch (error) {
-                console.error("Camera Error:", error);
-                loadingMessage.textContent = "មិនអាចបើកកាមេរ៉ាបានទេ។";
-                loadingProgress.textContent = "សូមអនុញ្ញាតឱ្យ Browser ប្រើប្រាស់កាមេរ៉ា។";
-            }
-        }
+        // --- Google Sheet Configuration ---
+        const SHEET_ID = '1eRyPoifzyvB4oBmruNyXcoKMKPRqjk6xDD6-bPNW6pc';
+        const SHEET_NAME = 'DIList';
+        const API_KEY = 'AIzaSyC6E9ON7DsgkMZEc6obtWehyqzGWwd_EII';
+        const RANGE = 'C9:AA'; // Fetch all columns from C to AA
+        const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!${RANGE}?key=${API_KEY}`;
+        
+        let labeledFaceDescriptors = null;
+        let faceMatcher = null;
+        let studentDatabase = [];
+        let isCardVisible = false;
+        let detectionTimeout;
 
         async function loadModels() {
-            loadingMessage.textContent = 'កំពុងទាញយក Model...';
-            await Promise.all([
-                faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights'),
-                faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights'),
-                faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights')
-            ]);
+            loadingText.textContent = 'កំពុងផ្ទុកម៉ូឌែល AI...';
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/model/';
+            // For faster loading, we use smaller models
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
         }
-        
-        // Function to fix google drive image url for direct access
-        function getCorsProxyUrl(url) {
-            // Using a simple CORS proxy. For production, consider setting up your own.
-            // This helps avoid issues with accessing Google Drive images directly.
-            if (!url) return null;
-            // A common pattern for Google Drive direct links
-            let fileId = null;
+
+        async function loadStudentData() {
             try {
-                 const urlObj = new URL(url);
-                 if (urlObj.hostname.includes('drive.google.com')) {
-                    const params = new URLSearchParams(urlObj.search);
-                    fileId = params.get('id') || urlObj.pathname.split('/d/')[1].split('/')[0];
-                 }
-            } catch(e) {
-                // If URL is not valid, try to extract from path
-                const match = url.match(/[-\w]{25,}/);
-                if(match) fileId = match[0];
-            }
-
-            if(fileId){
-                return `https://images.weserv.nl/?url=lh3.googleusercontent.com/d/${fileId}`;
-            }
-            return `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
-        }
-
-        async function createFaceMatcher() {
-            loadingMessage.textContent = 'កំពុងទាញយកទិន្នន័យនិស្សិត...';
-            if (API_KEY === 'YOUR_GOOGLE_API_KEY') {
-// ... existing code ... -->
-                    academicYear: row[3] || '', // D
-                    photoUrl: row[26] || null // AA
-                })).filter(s => s.id && s.photoUrl); // Filter out students without ID or photo
-                
-                loadingMessage.textContent = 'កំពុងវិភាគរូបថតនិស្សិត...';
-                
-                // --- OPTIMIZATION START: វិភាគរូបថតច្រើនក្នុងពេលតែមួយ ---
-                const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
-                let count = 0;
-
-                const promises = studentData.map(async (student) => {
-                    try {
-                        const img = await faceapi.fetchImage(getCorsProxyUrl(student.photoUrl));
-                        const detections = await faceapi.detectSingleFace(img, detectorOptions).withFaceLandmarks().withFaceDescriptor();
-                        
-                        // Update progress concurrently
-                        count++;
-                        loadingProgress.textContent = `(${count}/${studentData.length}) - ${student.fullName}`;
-
-                        if (detections) {
-                            return new faceapi.LabeledFaceDescriptors(
-                                student.id,
-                                [detections.descriptor]
-                            );
-                        }
-                        return null;
-                    } catch (e) {
-                        console.error(`Could not process image for ${student.fullName}: ${e}`);
-                        // Still update progress even on error
-                        count++;
-                        loadingProgress.textContent = `(${count}/${studentData.length}) - ${student.fullName}`;
-                        return null;
-                    }
-                });
-
-                const results = await Promise.all(promises);
-                const labeledFaceDescriptors = results.filter(descriptor => descriptor !== null);
-                // --- OPTIMIZATION END ---
-                
-                if(labeledFaceDescriptors.length > 0){
-                    faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.5); // 0.5 is the distance threshold
-                    loadingMessage.textContent = 'ការរៀបចំបានបញ្ចប់!';
-                } else {
-                     loadingMessage.textContent = 'មិនមានរូបថតដើម្បីវិភាគទេ';
-                     loadingProgress.textContent = 'សូមពិនិត្យទិន្នន័យក្នុង Google Sheet ឡើងវិញ។';
+                loadingText.textContent = 'កំពុងទាញទិន្នន័យនិស្សិត...';
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`Network response was not ok, status: ${response.status}`);
                 }
+                const data = await response.json();
+                const rows = data.values || [];
+
+                // Map column indices based on the fetched range 'C9:AA'
+                // C=0, D=1, E=2, G=4, L=9, M=10, N=11, R=15, S=16, AA=24
+                studentDatabase = rows.map((row, index) => ({
+                    id: row[9] || 'N/A',
+                    name: row[2] || 'N/A',
+                    nameLatin: row[10] || 'N/A',
+                    gender: row[11] || 'N/A',
+                    department: row[16] || 'N/A',
+                    group: row[4] || 'N/A',
+                    class: row[15] || 'N/A',
+                    generation: row[0] || 'N/A',
+                    academicYear: row[1] || 'N/A',
+                    photoUrl: row[24] || null
+                })).filter(student => student.photoUrl); // Only include students with a photo URL
+
+                if (studentDatabase.length === 0) {
+                    throw new Error("No student data with photos found in the Google Sheet.");
+                }
+
+                return createFaceDescriptors();
 
             } catch (error) {
-                console.error("Google Sheet Error:", error);
-                loadingMessage.textContent = "មិនអាចទាញទិន្នន័យបានទេ។";
-                loadingProgress.textContent = "សូមពិនិត្យ Spreadsheet ID, API Key, និងការអនុញ្ញាត (Share)។";
+                console.error('Error loading student data:', error);
+                loadingText.textContent = `មានបញ្ហាផ្ទុកទិន្នន័យ: ${error.message}`;
             }
         }
         
-        function displayStudentInfo(id) {
-            const student = studentData.find(s => s.id === id);
-            if (!student) return;
-
-            document.getElementById('student-photo').src = getCorsProxyUrl(student.photoUrl) || '';
-            document.getElementById('student-name').textContent = student.fullName;
-            document.getElementById('student-id').textContent = `អត្តលេខ: ${student.id}`;
-            document.getElementById('student-latin-name').textContent = student.latinName;
-            document.getElementById('student-gender').textContent = student.gender;
-            document.getElementById('student-generation').textContent = student.generation;
-            document.getElementById('student-academic-year').textContent = student.academicYear;
-            document.getElementById('student-group').textContent = student.group;
-            document.getElementById('student-class').textContent = student.class;
-            document.getElementById('student-department').textContent = student.department;
-
-            infoCard.classList.remove('hidden');
-            setTimeout(() => {
-                infoCard.querySelector('div').classList.remove('scale-95', 'opacity-0');
-                infoCard.querySelector('div').classList.add('scale-100', 'opacity-100');
-            }, 50);
+        // This function is needed because Google Drive URLs in sheets are not direct image links.
+        function transformGoogleDriveUrl(url) {
+            const regex = /https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)\/view\?usp=sharing/;
+            const match = url.match(regex);
+            if (match && match[1]) {
+                return `https://drive.google.com/uc?id=${match[1]}`;
+            }
+            // If it's already a usable format or a different host, return as is.
+            return url;
         }
 
-        function startDetection() {
-            if (isScanning) return;
-            isScanning = true;
-            
-            detectionInterval = setInterval(async () => {
-                if (!faceMatcher || !isScanning) return;
+        async function createFaceDescriptors() {
+            const descriptors = [];
+            let loadedCount = 0;
+            const totalStudents = studentDatabase.length;
 
-                // --- OPTIMIZATION: ប្រើ Options ដែលបានកំណត់ដើម្បីឱ្យការស្កេនលឿនជាងមុន ---
-                const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
-                const detections = await faceapi.detectAllFaces(video, detectorOptions).withFaceLandmarks().withFaceDescriptors();
-                const displaySize = { width: video.clientWidth, height: video.clientHeight };
-                faceapi.matchDimensions(canvas, displaySize);
-                
+            for (const student of studentDatabase) {
+                loadingText.textContent = `កំពុងវិភាគរូបថត (${loadedCount + 1}/${totalStudents})...`;
+                try {
+                    // CORS issues can be a problem. We use a proxy as a workaround.
+                    const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                    const imageUrl = transformGoogleDriveUrl(student.photoUrl);
+                    
+                    const img = await faceapi.fetchImage(proxyUrl + encodeURIComponent(imageUrl));
+                    const detections = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks(true).withFaceDescriptor();
+
+                    if (detections) {
+                        descriptors.push(new faceapi.LabeledFaceDescriptors(
+                            student.id, // Use unique student ID as label
+                            [detections.descriptor]
+                        ));
+                    }
+                } catch (e) {
+                    console.warn(`Could not process image for student ${student.name}: ${e}`);
+                }
+                loadedCount++;
+            }
+            return descriptors;
+        }
+
+        function startVideo() {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(err => {
+                    console.error("Error accessing camera:", err);
+                    loadingText.textContent = 'មិនអាចបើកកាមេរ៉ាបានទេ។';
+                });
+        }
+
+        function displayStudentInfo(student) {
+            if (isCardVisible) return; // Don't show if already visible
+            isCardVisible = true;
+            
+            document.getElementById('student-photo').src = student.photoUrl || 'https://placehold.co/100x100/334155/E2E8F0?text=Photo';
+            document.getElementById('student-name').textContent = student.name;
+            document.getElementById('student-name-latin').textContent = student.nameLatin;
+            document.getElementById('student-id').textContent = student.id;
+            document.getElementById('student-gender').textContent = student.gender;
+            document.getElementById('student-department').textContent = student.department;
+            document.getElementById('student-group').textContent = student.group;
+            document.getElementById('student-class').textContent = student.class;
+            document.getElementById('student-generation').textContent = student.generation;
+            document.getElementById('student-academic-year').textContent = student.academicYear;
+
+            studentInfoCard.classList.add('show');
+        }
+
+        closeCardBtn.addEventListener('click', () => {
+            studentInfoCard.classList.remove('show');
+            setTimeout(() => {
+                isCardVisible = false; // Allow new detections after card is hidden
+            }, 500); // 500ms matches the transition duration
+        });
+
+        video.addEventListener('play', () => {
+            if (!faceMatcher) return;
+
+            const displaySize = { width: video.clientWidth, height: video.clientHeight };
+            faceapi.matchDimensions(canvas, displaySize);
+
+            const recognitionInterval = setInterval(async () => {
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks(true).withFaceDescriptors();
                 const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                if(resizedDetections.length === 0){
-                     return;
-                }
 
-                for(const detection of resizedDetections) {
-                    const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
-                    const box = detection.detection.box;
+                if (isCardVisible) return; // Pause drawing/detection if card is shown
+
+                const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
+
+                results.forEach((result, i) => {
+                    const box = resizedDetections[i].detection.box;
                     const drawBox = new faceapi.draw.DrawBox(box, { 
-                        label: bestMatch.toString(),
-                        boxColor: 'rgba(0, 255, 0, 0.8)',
+                        label: result.toString(),
+                        boxColor: '#38bdf8', // Light blue color
                         drawLabelOptions: {
-                            backgroundColor: 'rgba(0, 255, 0, 0.8)',
-                            fontColor: 'white'
+                            fontColor: 'white',
+                            fontSize: 16,
+                            padding: 6,
+                            backgroundColor: '#38bdf8',
                         }
                     });
                     drawBox.draw(canvas);
 
-                    if (bestMatch.label !== 'unknown') {
-                        stopDetection();
-                        displayStudentInfo(bestMatch.label);
-                        break;
+                    if (result.label !== 'unknown') {
+                        // Clear any previous scheduled detection to avoid multiple popups
+                        clearTimeout(detectionTimeout);
+                        
+                        // Schedule to show info card after a short delay to confirm the detection
+                        detectionTimeout = setTimeout(() => {
+                             const student = studentDatabase.find(s => s.id === result.label);
+                             if (student) {
+                                displayStudentInfo(student);
+                             }
+                        }, 700); // 700ms delay before showing card
+                        
+                    } else {
+                       // If the face becomes unknown, clear the timeout
+                       clearTimeout(detectionTimeout);
                     }
-                }
-            }, 300); // Check every 300ms
-        }
-        
-        function stopDetection(){
-             isScanning = false;
-             if (detectionInterval) {
-                clearInterval(detectionInterval);
-                detectionInterval = null;
-            }
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-        
-        scanAgainBtn.addEventListener('click', () => {
-             const cardContent = infoCard.querySelector('div');
-             cardContent.classList.remove('scale-100', 'opacity-100');
-             cardContent.classList.add('scale-95', 'opacity-0');
-             setTimeout(() => {
-                infoCard.classList.add('hidden');
-                startDetection();
-             }, 300);
+                });
+
+            }, 200); // Run detection every 200ms
         });
 
-        // Main function to start the application
-        async function main() {
+        async function initialize() {
             await loadModels();
-            await setupCamera();
-            video.addEventListener('play', () => {
-                // Adjust canvas size when video starts playing
-                const displaySize = { width: video.clientWidth, height: video.clientHeight };
-                faceapi.matchDimensions(canvas, displaySize);
-            });
-            await createFaceMatcher();
+            labeledFaceDescriptors = await loadStudentData();
 
-            if (faceMatcher) {
-                loadingDiv.style.display = 'none';
-                startDetection();
+            if (labeledFaceDescriptors && labeledFaceDescriptors.length > 0) {
+                faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.5); // Confidence threshold
+                startVideo();
+                loadingOverlay.style.display = 'none';
+            } else {
+                loadingText.textContent = 'បរាជ័យក្នុងការរៀបចំទិន្នន័យសម្គាល់មុខ។';
             }
         }
 
-        // Start the app after the page loads
-        window.addEventListener('DOMContentLoaded', main);
+        initialize();
 
     </script>
 </body>
 </html>
-
