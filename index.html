@@ -81,7 +81,6 @@
         let nextUserId = 1;
         const faceMatcherThreshold = 0.5;
 
-        // **កែប្រែថ្មី:** បង្ហាញ​សារ​បញ្ហា​ឲ្យ​ច្បាស់
         function showLoadingError(title, message) {
             loaderIcon.style.display = 'none';
             loadingText.innerHTML = `
@@ -112,14 +111,33 @@
         }
 
         async function startWebcam() {
+            // **កែប្រែថ្មី:** ពិនិត្យ​មើល​ថា​តើ Browser ​គាំទ្រ​ការ​ប្រើ​កាមេរ៉ា​ដែរ​ឬទេ
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.error('getUserMedia() is not supported by your browser.');
+                showLoadingError(
+                    'Browser មិន​គាំទ្រ!',
+                    'កម្មវិធី​រុករក​របស់​អ្នក​មិន​គាំទ្រ​ការ​ចូល​ប្រើ​កាមេរ៉ា​ទេ។ សូម​សាកល្បង​ប្រើ Chrome ឬ Firefox ជំនាន់​ចុងក្រោយ។'
+                );
+                return;
+            }
+
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
                 video.srcObject = stream;
             } catch (err) {
                 console.error("Error accessing webcam: ", err);
+                let message = 'សូម​ប្រាកដ​ថា​អ្នក​បាន​អនុញ្ញាត (Allow) ឲ្យ​គេហទំព័រ​នេះ​ប្រើប្រាស់​កាមេរ៉ា​នៅ​ក្នុង Browser។';
+                
+                // **កែប្រែថ្មី:** បង្ហាញ​សារ​ផ្សេង​គ្នា​អាស្រ័យ​លើ​ប្រភេទ​បញ្ហា
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    message = 'អ្នក​បាន​បដិសេធ​ការ​ចូល​ប្រើ​កាមេរ៉ា។ សូម​អនុញ្ញាត​ក្នុង​ការ​កំណត់​របស់ Browser រួច​ផ្ទុក​ទំព័រ​ឡើងវិញ។';
+                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                     message = 'រក​មិន​ឃើញ​កាមេរ៉ា​ទេ។ សូម​ប្រាកដ​ថា​កាមេរ៉ា​របស់​អ្នក​បាន​ភ្ជាប់​ត្រឹមត្រូវ។';
+                }
+
                 showLoadingError(
                     'មិន​អាច​បើក​កាមេរ៉ា​បាន​ទេ!',
-                    'សូម​ប្រាកដ​ថា​អ្នក​បាន​អនុញ្ញាត (Allow) ឲ្យ​គេហទំព័រ​នេះ​ប្រើប្រាស់​កាមេរ៉ា​នៅ​ក្នុង Browser។'
+                    message
                 );
             }
         }
@@ -136,7 +154,7 @@
         
         async function scanFaces() {
             if (video.paused || video.ended) {
-                return; // បញ្ឈប់​ការ​ស្កេន​បើ video មិន​ដំណើរការ
+                return;
             }
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
@@ -159,8 +177,11 @@
                 
                 if (bestMatch.label !== 'unknown') {
                     const userLabel = bestMatch.label;
-                    logEvent(`✅ បុគ្គលិក ${userLabel} បាន​ស្កេន​ចូល`, 'checkin');
-                    checkedOutUsers = checkedOutUsers.filter(user => user.label !== userLabel);
+                    const logFound = Array.from(logList.children).some(li => li.textContent.includes(`${userLabel} បាន​ស្កេន​ចូល`));
+                    if (!logFound) {
+                        logEvent(`✅ បុគ្គលិក ${userLabel} បាន​ស្កេន​ចូល`, 'checkin');
+                        checkedOutUsers = checkedOutUsers.filter(user => user.label !== userLabel);
+                    }
                 } else {
                     const isAlreadyCheckedOut = checkedOutUsers.some(user => 
                         faceapi.euclideanDistance(user.descriptor, detection.descriptor) < faceMatcherThreshold
