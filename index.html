@@ -3,219 +3,770 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ប្រព័ន្ធស្កេនមុខចេញ-ចូលស្វ័យប្រវត្តិ</title>
-    <!-- បញ្ចូល Tailwind CSS សម្រាប់​ការ​រចនា​រូបរាង -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- បញ្ចូល face-api.js សម្រាប់​បច្ចេកវិទ្យា​វិភាគ​ផ្ទៃមុខ -->
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <title>កម្មវិធីកត់ត្រាវត្តមានបុគ្គលិក</title>
+    <link href="https://fonts.googleapis.com/css2?family=Koulen&family=Battambang:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* រចនា​បន្ថែម​សម្រាប់​ផ្ទុក​ទិន្នន័យ */
-        .loader {
-            border: 8px solid #f3f3f3;
+        :root {
+            --primary-color: #0d6efd;
+            --primary-color-darker: #0b5ed7;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --secondary-color: #6c757d;
+            --info-color: #0dcaf0;
+            --info-color-darker: #0aa8c7;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --border-color: #dee2e6;
+            --card-bg: #ffffff;
+            --font-heading: 'Koulen', sans-serif;
+            --font-body: 'Battambang', serif;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --box-shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container { width: 100%; max-width: 700px; }
+        header { text-align: center; margin-bottom: 2rem; }
+        header h1 { 
+            font-family: var(--font-heading); 
+            color: var(--primary-color); 
+            font-size: 2.5rem; 
+            margin: 0;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        header h1:hover { color: var(--primary-color-darker); }
+        header p { font-size: 1.1rem; color: #6c757d; }
+
+        .card {
+            background-color: var(--card-bg); border-radius: 12px; box-shadow: var(--box-shadow);
+            padding: 25px; margin-bottom: 25px; transition: box-shadow 0.3s ease;
+        }
+        .selection-card { transition: all 0.5s ease-in-out; transform-origin: top; }
+        .card:hover { box-shadow: var(--box-shadow-hover); }
+        .card h2 {
+            font-family: var(--font-heading); margin-top: 0; margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color); padding-bottom: 15px;
+        }
+        .records-card h2 { cursor: pointer; transition: color 0.3s ease; }
+        .records-card h2:hover { color: var(--primary-color); }
+        .form-group { 
+            margin-bottom: 15px;
+            transition: all 0.4s ease-in-out; 
+            transform-origin: top;
+        }
+
+        #employee-input, #filter-input {
+            width: 100%; padding: 12px; font-family: var(--font-body); font-size: 1rem;
+            border: 1px solid var(--border-color); border-radius: 8px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        #employee-input:focus, #filter-input:focus {
+            outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
+        }
+        #employee-records-container { display: flex; flex-direction: column; gap: 15px; }
+
+        .employee-record {
+            display: grid; grid-template-columns: auto 1fr auto; gap: 20px;
+            padding: 15px; border: 2px solid var(--border-color); border-radius: 10px;
+            align-items: center; animation: fadeInDown 0.5s ease-out forwards; opacity: 0;
+            transition: border-color 0.5s ease, background-color 0.5s ease;
+        }
+        .employee-photo { flex-shrink: 0; width: 60px; height: 60px; }
+        .employee-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 2px solid var(--border-color); }
+        .employee-info h4 { margin: 0 0 5px 0; font-family: var(--font-heading); font-size: 1.2rem; }
+        .employee-info p { margin: 0; font-size: 0.85rem; color: #6c757d; line-height: 1.6; }
+        .employee-info p strong { color: var(--dark-color); }
+
+        .employee-actions { display: flex; gap: 10px; }
+        .btn {
+            border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;
+            font-family: var(--font-heading); font-size: 1rem; color: white;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-check-in { background-color: var(--success-color); }
+        .btn-check-in:hover { background-color: #157347; }
+        .btn-delete { background-color: var(--secondary-color); }
+        .btn-delete:hover { background-color: #5a6268; }
+        .btn-scan {
+            background-color: var(--info-color);
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-scan:hover { background-color: var(--info-color-darker); }
+        .btn:disabled { background-color: #9db0c1; cursor: not-allowed; transform: none; }
+
+        .employee-record.completed { background-color: #e6f9f0; border-color: var(--success-color) !important; }
+
+        .overdue-status {
+            display: none; align-items: center; gap: 5px; font-weight: 700;
+            color: var(--danger-color); margin-top: 5px; font-size: 0.8rem;
+        }
+        .overdue-status::before { content: '⏰'; font-size: 0.9rem; }
+        .employee-record.overdue .overdue-status { display: flex; }
+        .employee-record.overdue { border-color: var(--danger-color); }
+
+        .hidden {
+            opacity: 0; transform: scaleY(0); max-height: 0px; padding: 0;
+            margin: 0; border-width: 0; overflow: hidden;
+        }
+
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .loader-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255, 255, 255, 0.85); 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            z-index: 1000;
+            transition: opacity 0.3s;
+        }
+        .loader { border: 8px solid #f3f3f3; border-radius: 50%; border-top: 8px solid var(--primary-color); width: 60px; height: 60px; animation: spin 1s linear infinite; }
+        #loader-message { margin-top: 20px; font-family: var(--font-body); font-size: 1.1rem; color: var(--dark-color); }
+
+        /* Face Scanner Modal Styles */
+        #face-scanner-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center; align-items: center; z-index: 2000;
+        }
+        #face-scanner-container {
+            background: white; padding: 20px; border-radius: 12px; text-align: center;
+            max-width: 90%; width: 500px; position: relative;
+        }
+        #video-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
             border-radius: 50%;
-            border-top: 8px solid #3498db;
-            width: 60px;
-            height: 60px;
-            animation: spin 2s linear infinite;
+            overflow: hidden;
+            border: 3px solid var(--info-color);
+            box-shadow: 0 0 20px rgba(13, 202, 240, 0.7);
+            animation: pulse-glow 2s infinite alternate;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        #video-container::after {
+            content: '';
+            position: absolute;
+            top: -100%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 48%, rgba(0, 255, 255, 0.7) 50%, rgba(255,255,255,0.1) 52%, rgba(255,255,255,0) 100%);
+            animation: scan-effect 3s linear infinite;
+            z-index: 2;
         }
-        /* រចនា​សម្រាប់​បញ្ជី​កត់ត្រា */
-        #log-list li {
-            padding: 0.75rem;
-            border-bottom: 1px solid #e5e7eb;
+        #face-video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover;
         }
-        #log-list li:last-child {
-            border-bottom: none;
+        #face-canvas { 
+            position: absolute; 
+            top: 0; 
+            left: 0;
+            z-index: 3;
+        }
+        #close-face-modal {
+            position: absolute; top: 10px; right: 15px; font-size: 2rem;
+            cursor: pointer; color: var(--secondary-color);
+            z-index: 4;
+        }
+        #face-scanner-container p { font-size: 1rem; color: var(--dark-color); }
+
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 10px rgba(13, 202, 240, 0.5); }
+            to { box-shadow: 0 0 30px rgba(13, 202, 240, 1), 0 0 10px rgba(255, 255, 255, 0.5) inset; }
+        }
+        @keyframes scan-effect {
+            0% { transform: translateY(0%); }
+            100% { transform: translateY(200%); }
+        }
+
+        @media (max-width: 700px) {
+            body { padding: 10px; }
+            header h1 { font-size: 2rem; }
+            #current-date { display: none; }
+            .card { padding: 15px; }
+            .employee-record {
+                grid-template-columns: auto 1fr;
+                grid-template-areas: "photo info" "actions actions";
+                row-gap: 12px; column-gap: 12px; padding: 12px;
+            }
+            .employee-photo { grid-area: photo; width: 45px; height: 45px; }
+            .employee-info { grid-area: info; }
+            .employee-info h4 { font-size: 1rem; }
+            .employee-info p { font-size: 0.75rem; line-height: 1.5; }
+            .employee-actions { grid-area: actions; width: 100%; }
+            .employee-actions .btn {
+                flex-grow: 1; text-align: center; font-size: 0.85rem; padding: 10px 8px;
+            }
+            #video-container { width: 250px; height: 250px; }
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans flex items-center justify-center min-h-screen">
+<body>
 
-    <div class="container mx-auto p-4 md:p-8 max-w-4xl bg-white rounded-xl shadow-lg">
-        <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-6">ប្រព័ន្ធស្កេនមុខចេញ-ចូលស្វ័យប្រវត្តិ (សម្រាប់​មនុស្ស​ច្រើន​នាក់)</h1>
+    <div class="container">
+        <header>
+            <h1>កត់ត្រាម៉ោងសម្រាក</h1>
+            <p id="current-date"></p>
+        </header>
 
-        <!-- បង្ហាញ​នៅ​ពេល​កំពុង​ទាញ​យក Model -->
-        <div id="loading" class="flex flex-col items-center justify-center p-8">
-            <div id="loader-icon" class="loader mb-4"></div>
-            <p id="loading-text" class="text-gray-600 text-center">កំពុង​រៀបចំ​ប្រព័ន្ធ​... សូម​រង់ចាំ​បន្តិច!</p>
-        </div>
-
-        <!-- ផ្នែក​សំខាន់​នៃ​កម្មវិធី (លាក់​ទុក​រហូត​ដល់ Model ​ដំណើរការ​រួច) -->
-        <main id="main-content" class="hidden">
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- ផ្នែក​បង្ហាញ​កាមេរ៉ា -->
-                <div class="flex flex-col items-center">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">កាមេរ៉ា​ស្កេន​ផ្ទាល់</h2>
-                    <div class="relative w-full max-w-md rounded-lg overflow-hidden border-2 border-gray-300">
-                        <video id="video" playsinline muted autoplay class="w-full h-auto"></video>
-                        <canvas id="canvas" class="absolute top-0 left-0"></canvas>
-                    </div>
+        <main>
+            <div class="card selection-card">
+                <div class="form-group">
+                    <label for="employee-input">ជ្រើសរើសបុគ្គលិក (ពេលចេញទៅក្រៅ)</label>
+                    <input type="text" id="employee-input" list="employee-list-data" placeholder="វាយបញ្ចូល ឬជ្រើសរើសឈ្មោះ...">
+                    <datalist id="employee-list-data"></datalist>
                 </div>
-
-                <!-- ផ្នែក​បង្ហាញ​បញ្ជី​កត់ត្រា -->
-                <div class="flex flex-col">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">បញ្ជី​កត់ត្រា​ការ​ចេញ-ចូល</h2>
-                    <div id="log-container" class="w-full h-96 bg-gray-50 rounded-lg shadow-inner overflow-y-auto">
-                        <ul id="log-list">
-                            <!-- បញ្ជី​នឹង​បង្ហាញ​នៅ​ទីនេះ -->
-                        </ul>
-                    </div>
+                 <div class="form-group">
+                    <button id="scan-face-btn" class="btn btn-scan" disabled>កំពុងរៀបចំប្រព័ន្ធសម្គាល់ផ្ទៃមុខ...</button>
                 </div>
+            </div>
+
+            <div class="card records-card">
+                <h2>បញ្ជីបុគ្គលិកកំពុងសម្រាក</h2>
+                <div class="form-group">
+                     <input type="text" id="filter-input" list="active-break-list" placeholder="ស្វែងរកក្នុងបញ្ជី...">
+                     <datalist id="active-break-list"></datalist>
+                </div>
+                <div id="employee-records-container"></div>
             </div>
         </main>
     </div>
 
+    <div id="loader" class="loader-overlay" style="display: none;">
+        <div class="loader"></div>
+        <p id="loader-message"></p>
+    </div>
+
+    <!-- Face Scanner Modal -->
+    <div id="face-scanner-modal">
+        <div id="face-scanner-container">
+            <span id="close-face-modal">&times;</span>
+            <p>សូមដាក់ផ្ទៃមុខរបស់លោកអ្នកឲ្យចំកាមេរ៉ា</p>
+            <div id="video-container">
+                <video id="face-video" playsinline autoplay muted></video>
+                <canvas id="face-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const loadingDiv = document.getElementById('loading');
-        const loadingText = document.getElementById('loading-text');
-        const loaderIcon = document.getElementById('loader-icon');
-        const mainContent = document.getElementById('main-content');
-        const logList = document.getElementById('log-list');
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURATION ---
+            const SHEET_ID = '1eRyPoifzyvB4oBmruNyXcoKMKPRqjk6xDD6-bPNW6pc';
+            const SHEET_NAME = 'DIList';
+            const RANGE = 'E9:AI'; // Fetch all data from Employee Info to Schedule columns
+            const READ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&range=${RANGE}`;
+            const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxCekjXECxkU-hmWzik1wChzCF7YpWxb7ZA1RHazuxMaUInNRU2nZoe7uh0sdzkXxr6/exec';
+            const STORAGE_KEY = 'activeBreaks';
+            const FACE_DESCRIPTORS_KEY = 'faceDescriptorsCache';
+            const DEFAULT_AVATAR = 'https://i.stack.imgur.com/34AD2.jpg';
+            const OVERDUE_MINUTES = 15;
+            const CONSECUTIVE_MATCHES_REQUIRED = 3; 
 
-        let checkedOutUsers = [];
-        let nextUserId = 1;
-        const faceMatcherThreshold = 0.5;
+            // --- DOM ELEMENTS ---
+            const mainTitle = document.querySelector('header h1');
+            const employeeInput = document.getElementById('employee-input');
+            const employeeDatalist = document.getElementById('employee-list-data');
+            const currentDateDisplay = document.getElementById('current-date');
+            const recordsContainer = document.getElementById('employee-records-container');
+            const filterInput = document.getElementById('filter-input');
+            const filterBoxContainer = document.querySelector('.records-card .form-group');
+            const recordsCardTitle = document.querySelector('.records-card h2');
+            const activeBreakDatalist = document.getElementById('active-break-list');
+            const loader = document.getElementById('loader');
+            const loaderMessage = document.getElementById('loader-message');
+            const selectionCard = document.querySelector('.selection-card');
+            const scanFaceBtn = document.getElementById('scan-face-btn');
+            const faceScannerModal = document.getElementById('face-scanner-modal');
+            const closeFaceModalBtn = document.getElementById('close-face-modal');
+            const faceVideo = document.getElementById('face-video');
+            const faceCanvas = document.getElementById('face-canvas');
 
-        function showLoadingError(title, message) {
-            loaderIcon.style.display = 'none';
-            loadingText.innerHTML = `
-                <p class="text-red-600 font-bold text-lg">${title}</p>
-                <p class="text-gray-600 mt-2">${message}</p>
-            `;
-        }
+            // --- STATE VARIABLES ---
+            let employeeData = [];
+            let inactivityTimer;
+            let filterInactivityTimer;
+            let videoStream;
+            let faceMatcher;
+            let faceScanInterval;
+            let isFaceApiReady = false;
+            let matchBuffer = []; 
 
-        async function run() {
-            try {
-                loadingText.textContent = 'កំពុង​ទាញយក Model AI... (អាច​ចំណាយ​ពេល​បន្តិច)';
+            // --- HELPER FUNCTIONS ---
+            const showLoader = (show, message = '') => {
+                loaderMessage.textContent = message;
+                loader.style.display = show ? 'flex' : 'none';
+            };
+            const getBreaksFromStorage = () => JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            const saveBreaksToStorage = (breaks) => localStorage.setItem(STORAGE_KEY, JSON.stringify(breaks));
+
+            // --- UI & DATE FUNCTIONS ---
+            const setKhmerDate = () => {
+                const now = new Date();
+                const days = ['អាទិត្យ', 'ច័ន្ទ', 'អង្គារ', 'ពុធ', 'ព្រហស្បតិ៍', 'សុក្រ', 'សៅរ៍'];
+                const months = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
+                const khmerNumerals = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+                const toKhmerNumeral = (num) => String(num).split('').map(d => khmerNumerals[d]).join('');
+                currentDateDisplay.textContent = `ថ្ងៃ${days[now.getDay()]} ទី${toKhmerNumeral(now.getDate())} ខែ${months[now.getMonth()]} ឆ្នាំ${toKhmerNumeral(now.getFullYear())}`;
+            };
+
+            const hideSelectionCard = () => selectionCard.classList.add('hidden');
+            const showSelectionCard = () => selectionCard.classList.remove('hidden');
+            const resetInactivityTimer = () => {
+                clearTimeout(inactivityTimer);
+                inactivityTimer = setTimeout(hideSelectionCard, 10000);
+            };
+
+            const hideFilterBox = () => filterBoxContainer.classList.add('hidden');
+            const showFilterBox = () => filterBoxContainer.classList.remove('hidden');
+            const resetFilterTimer = () => {
+                clearTimeout(filterInactivityTimer);
+                filterInactivityTimer = setTimeout(hideFilterBox, 10000);
+            };
+
+            const checkOverdueBreaks = () => {
+                const breaks = getBreaksFromStorage();
+                const now = new Date();
+                breaks.forEach(breakEntry => {
+                    const recordDiv = recordsContainer.querySelector(`.employee-record[data-id="${breakEntry.id}"]`);
+                    if (recordDiv) {
+                        const checkOutTime = new Date(breakEntry.checkOutTime);
+                        const diffMinutes = (now - checkOutTime) / 60000;
+                        const overdueStatusEl = recordDiv.querySelector('.overdue-status');
+                        if (diffMinutes > OVERDUE_MINUTES) {
+                            const overdueTime = Math.floor(diffMinutes - OVERDUE_MINUTES);
+                            overdueStatusEl.textContent = `លើសកំណត់ ${overdueTime} នាទី`;
+                            recordDiv.classList.add('overdue');
+                        } else {
+                            overdueStatusEl.textContent = '';
+                            recordDiv.classList.remove('overdue');
+                        }
+                    }
+                });
+            };
+
+            // --- FACE RECOGNITION FUNCTIONS (OPTIMIZED & DETAILED) ---
+            async function loadFaceApiModels() {
+                showLoader(true, 'កំពុងដំណើរការម៉ូឌែលសម្គាល់ផ្ទៃមុខ...');
                 const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
                 await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL), 
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL), 
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
-                
-                loadingText.textContent = 'Model បាន​ទាញយក​រួចរាល់! កំពុង​ត្រៀម​បើក​កាមេរ៉ា...';
-                await startWebcam();
-            } catch (error) {
-                console.error('Failed to load models:', error);
-                showLoadingError(
-                    'មាន​បញ្ហា​ក្នុង​ការ​ទាញយក Model!',
-                    'សូម​ពិនិត្យ​ការ​เชื่อมต่ออินเทอร์เน็ต​របស់​អ្នក ហើយ​ព្យាយាម​ផ្ទុក​ទំព័រ​ឡើងវិញ។'
-                );
-            }
-        }
-
-        async function startWebcam() {
-            // **កែប្រែថ្មី:** ពិនិត្យ​មើល​ថា​តើ Browser ​គាំទ្រ​ការ​ប្រើ​កាមេរ៉ា​ដែរ​ឬទេ
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                console.error('getUserMedia() is not supported by your browser.');
-                showLoadingError(
-                    'Browser មិន​គាំទ្រ!',
-                    'កម្មវិធី​រុករក​របស់​អ្នក​មិន​គាំទ្រ​ការ​ចូល​ប្រើ​កាមេរ៉ា​ទេ។ សូម​សាកល្បង​ប្រើ Chrome ឬ Firefox ជំនាន់​ចុងក្រោយ។'
-                );
-                return;
+                isFaceApiReady = true;
+                console.log('Face API models loaded.');
             }
 
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-                video.srcObject = stream;
-            } catch (err) {
-                console.error("Error accessing webcam: ", err);
-                let message = 'សូម​ប្រាកដ​ថា​អ្នក​បាន​អនុញ្ញាត (Allow) ឲ្យ​គេហទំព័រ​នេះ​ប្រើប្រាស់​កាមេរ៉ា​នៅ​ក្នុង Browser។';
-                
-                // **កែប្រែថ្មី:** បង្ហាញ​សារ​ផ្សេង​គ្នា​អាស្រ័យ​លើ​ប្រភេទ​បញ្ហា
-                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    message = 'អ្នក​បាន​បដិសេធ​ការ​ចូល​ប្រើ​កាមេរ៉ា។ សូម​អនុញ្ញាត​ក្នុង​ការ​កំណត់​របស់ Browser រួច​ផ្ទុក​ទំព័រ​ឡើងវិញ។';
-                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-                     message = 'រក​មិន​ឃើញ​កាមេរ៉ា​ទេ។ សូម​ប្រាកដ​ថា​កាមេរ៉ា​របស់​អ្នក​បាន​ភ្ជាប់​ត្រឹមត្រូវ។';
+            async function getOrCreateFaceMatcher(employeeList) {
+                if (!isFaceApiReady || employeeList.length === 0) return;
+
+                const cachedData = localStorage.getItem(FACE_DESCRIPTORS_KEY);
+                if (cachedData) {
+                    try {
+                        const descriptors = JSON.parse(cachedData).map(item => faceapi.LabeledFaceDescriptors.fromJSON(item));
+                        faceMatcher = new faceapi.FaceMatcher(descriptors, 0.45); 
+                        scanFaceBtn.disabled = false;
+                        scanFaceBtn.textContent = 'ស្កេនផ្ទៃមុខ ដើម្បី Check-Out';
+                        console.log('Face Matcher created from cache.');
+                        showLoader(false);
+                        return;
+                    } catch (e) {
+                        console.error("Failed to parse cached descriptors, fetching again.", e);
+                        localStorage.removeItem(FACE_DESCRIPTORS_KEY);
+                    }
                 }
-
-                showLoadingError(
-                    'មិន​អាច​បើក​កាមេរ៉ា​បាន​ទេ!',
-                    message
-                );
-            }
-        }
-
-        video.addEventListener('play', () => {
-            loadingDiv.style.display = 'none';
-            mainContent.classList.remove('hidden');
-
-            const displaySize = { width: video.clientWidth, height: video.clientHeight };
-            faceapi.matchDimensions(canvas, displaySize);
-
-            setInterval(scanFaces, 2000);
-        });
-        
-        async function scanFaces() {
-            if (video.paused || video.ended) {
-                return;
-            }
-            const displaySize = { width: video.clientWidth, height: video.clientHeight };
-            faceapi.matchDimensions(canvas, displaySize);
-
-            const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-            const resizedDetections = faceapi.resizeResults(detections, displaySize);
-
-            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-            faceapi.draw.drawDetections(canvas, resizedDetections);
-            
-            if (detections.length === 0) return;
-
-            const labeledDescriptors = checkedOutUsers.map(user => 
-                new faceapi.LabeledFaceDescriptors(user.label, [user.descriptor])
-            );
-            const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, faceMatcherThreshold);
-
-            for (const detection of detections) {
-                const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
                 
-                if (bestMatch.label !== 'unknown') {
-                    const userLabel = bestMatch.label;
-                    const logFound = Array.from(logList.children).some(li => li.textContent.includes(`${userLabel} បាន​ស្កេន​ចូល`));
-                    if (!logFound) {
-                        logEvent(`✅ បុគ្គលិក ${userLabel} បាន​ស្កេន​ចូល`, 'checkin');
-                        checkedOutUsers = checkedOutUsers.filter(user => user.label !== userLabel);
+                showLoader(true, 'កំពុងរៀបចំទិន្នន័យផ្ទៃមុខ...');
+                try {
+                    let processedCount = 0;
+                    const totalEmployees = employeeList.length;
+                    
+                    const updateProgress = () => {
+                        processedCount++;
+                        const percentage = Math.round((processedCount / totalEmployees) * 100);
+                        showLoader(true, `កំពុងរៀបចំទិន្នន័យផ្ទៃមុខ... (${processedCount}/${totalEmployees}) ${percentage}%`);
+                    };
+
+                    const labeledFaceDescriptors = await Promise.all(
+                        employeeList.map(async (emp) => {
+                            try {
+                                const img = await faceapi.fetchImage(emp.photoUrl);
+                                const detections = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
+                                if (!detections) {
+                                    console.warn(`មិនអាចសម្គាល់ផ្ទៃមុខសម្រាប់: ${emp.name}`);
+                                    updateProgress();
+                                    return null;
+                                }
+                                updateProgress();
+                                return new faceapi.LabeledFaceDescriptors(emp.id, [detections.descriptor]);
+                            } catch (e) {
+                                console.error(`Failed to process image for ${emp.name}:`, e);
+                                updateProgress();
+                                return null;
+                            }
+                        })
+                    );
+                    const validDescriptors = labeledFaceDescriptors.filter(d => d !== null);
+                     if (validDescriptors.length > 0) {
+                        faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.45);
+                        localStorage.setItem(FACE_DESCRIPTORS_KEY, JSON.stringify(validDescriptors));
+                        console.log('Face Matcher created and saved to cache.');
+                        scanFaceBtn.disabled = false;
+                        scanFaceBtn.textContent = 'ស្កេនផ្ទៃមុខ ដើម្បី Check-Out';
+                    } else {
+                        scanFaceBtn.textContent = 'មិនអាចបង្កើតទិន្នន័យផ្ទៃមុខបានទេ';
+                        console.error("No valid face descriptors could be created.");
+                    }
+                } catch (error) {
+                    console.error("Error creating face matcher: ", error);
+                    scanFaceBtn.textContent = 'មានបញ្ហាក្នុងការដំណើរការ';
+                } finally {
+                    showLoader(false);
+                }
+            }
+            
+            const startFaceScanner = async () => {
+                if (!isFaceApiReady || !faceMatcher) {
+                    alert('ប្រព័ន្ធសម្គាល់ផ្ទៃមុខមិនទាន់រួចរាល់ទេ។');
+                    return;
+                }
+                matchBuffer = []; 
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    faceVideo.srcObject = videoStream;
+                    faceScannerModal.style.display = 'flex';
+
+                    faceVideo.addEventListener('play', () => {
+                        const displaySize = { width: faceVideo.clientWidth, height: faceVideo.clientHeight };
+                        faceapi.matchDimensions(faceCanvas, displaySize);
+                                              
+                        clearInterval(faceScanInterval);
+
+                        const tinyFaceDetectorOptions = new faceapi.TinyFaceDetectorOptions({
+                            inputSize: 160, 
+                            scoreThreshold: 0.5
+                        });
+
+                        faceScanInterval = setInterval(async () => {
+                            const detections = await faceapi.detectAllFaces(faceVideo, tinyFaceDetectorOptions).withFaceLandmarks().withFaceDescriptors();
+                            const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                            const context = faceCanvas.getContext('2d');
+                            context.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+                            
+                            if (detections.length > 0) {
+                                const largestDetection = resizedDetections.sort((a,b) => b.detection.box.area - a.detection.box.area)[0];
+                                const bestMatch = faceMatcher.findBestMatch(largestDetection.descriptor);
+                                
+                                const box = largestDetection.detection.box;
+                                const drawOptions = {
+                                    label: bestMatch.toString(),
+                                    boxColor: bestMatch.label === 'unknown' ? 'red' : 'green',
+                                    drawLabel: true
+                                };
+                                const drawBox = new faceapi.draw.DrawBox(box, drawOptions);
+                                drawBox.draw(faceCanvas);
+                                
+                                if (bestMatch.label !== 'unknown') {
+                                    matchBuffer.push(bestMatch.label);
+                                } else {
+                                    matchBuffer = [];
+                                }
+
+                                if (matchBuffer.length >= CONSECUTIVE_MATCHES_REQUIRED) {
+                                    const allSame = matchBuffer.every(val => val === matchBuffer[0]);
+                                    if (allSame) {
+                                        stopFaceScanner();
+                                        handleCheckOutById(matchBuffer[0]);
+                                    } else {
+                                        matchBuffer = [];
+                                    }
+                                }
+
+                            } else {
+                                matchBuffer = [];
+                            }
+                        }, 300); 
+                    });
+
+                } catch (err) {
+                    console.error("Error accessing camera: ", err);
+                    alert("មិនអាចបើកកាមេរ៉ាបានទេ។ សូមពិនិត្យការអនុញ្ញាត (Permission)។");
+                }
+            };
+            
+            const stopFaceScanner = () => {
+                clearInterval(faceScanInterval);
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                }
+                faceScannerModal.style.display = 'none';
+                const context = faceCanvas.getContext('2d');
+                context.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+            };
+
+            // --- DATA & RENDERING FUNCTIONS ---
+            const loadEmployeeData = async () => {
+                showLoader(true, 'កំពុងទាញយកទិន្នន័យបុគ្គលិក...');
+                try {
+                    const response = await fetch(READ_URL);
+                    const csvText = await response.text();
+                    const allData = csvText.split('\n').map(row => row.split(',').map(cell => cell.replace(/"/g, '')));
+                    
+                    // --- SMART FILTERING LOGIC ---
+                    const day = new Date().getDay(); // 0=Sunday, 1=Monday, ...
+                    const shift = new Date().getHours() < 12 ? 'morning' : 'afternoon';
+                    // Column mapping: E=0, F=1, ..., AA=22, AB=23, AC=24, ... AI=30
+                    const scheduleColIndex = [30, 24, 25, 26, 27, 28, 29][day]; 
+                    
+                    const filteredData = allData.filter(row => {
+                        const schedule = row[scheduleColIndex]?.trim() || '';
+                        if (!schedule) return false;
+
+                        if (shift === 'morning') {
+                            return schedule === 'ពេញម៉ោង' || schedule === 'មួយព្រឹក';
+                        } else { // afternoon
+                            return schedule === 'ពេញម៉ោង' || schedule === 'មួយរសៀល';
+                        }
+                    });
+
+                    employeeData = filteredData.map(row => ({
+                        id: row[0].trim(), 
+                        name: row[7], 
+                        department: row[14] || 'N/A', 
+                        photoUrl: row[22], // AA = index 22
+                        searchValue: `${row[7]} (${row[0].trim()})`
+                    })).filter(emp => emp.id && emp.name && emp.photoUrl); // Final check for valid data
+
+                    employeeDatalist.innerHTML = '';
+                    employeeData.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp.searchValue;
+                        employeeDatalist.appendChild(option);
+                    });
+                     console.log(`Loaded ${employeeData.length} employees for today's ${shift} shift.`);
+
+                } catch (error) { 
+                    console.error('Error fetching data:', error); 
+                    scanFaceBtn.textContent = 'មានបញ្ហាក្នុងការទាញទិន្នន័យ';
+                } finally { 
+                    showLoader(false); 
+                }
+            };
+
+
+            const updateActiveBreakDatalist = () => {
+                const breaks = getBreaksFromStorage();
+                activeBreakDatalist.innerHTML = '';
+                breaks.forEach(breakEntry => {
+                    const option = document.createElement('option');
+                    option.value = `${breakEntry.name} (${breakEntry.id})`;
+                    activeBreakDatalist.appendChild(option);
+                });
+            };
+            
+            const saveData = async (data) => {
+                showLoader(true, 'កំពុងរក្សាទុក...');
+                try {
+                    await fetch(WRITE_URL, {
+                        method: 'POST', mode: 'no-cors', cache: 'no-cache',
+                        headers: { 'Content-Type': 'application/json' },
+                        redirect: 'follow', body: JSON.stringify(data)
+                    });
+                    return true;
+                } catch (error) { console.error('Save failed:', error); return false; } finally { showLoader(false); }
+            };
+            
+            const handleCheckOutById = (employeeId) => {
+                const selectedEmployee = employeeData.find(emp => emp.id === employeeId);
+                if (selectedEmployee) {
+                    const breaks = getBreaksFromStorage();
+                    if (breaks.some(b => b.id === selectedEmployee.id)) {
+                        alert(`បុគ្គលិកនេះ (${selectedEmployee.name}) បានចុះឈ្មោះចេញទៅក្រៅរួចហើយ។`);
+                        return;
+                    }
+                    const newBreak = {
+                        id: selectedEmployee.id, name: selectedEmployee.name, department: selectedEmployee.department,
+                        photoUrl: selectedEmployee.photoUrl, checkOutTime: new Date().toISOString()
+                    };
+                    breaks.push(newBreak);
+                    saveBreaksToStorage(breaks);
+                    renderBreakList();
+                    employeeInput.value = '';
+                } else {
+                    alert('រកមិនឃើញបុគ្គលិកដែលមាន ID: ' + employeeId);
+                }
+            };
+
+            const handleCheckIn = async (employeeId) => {
+                 const breaks = getBreaksFromStorage();
+                const breakEntry = breaks.find(b => b.id === employeeId);
+                if (!breakEntry) return;
+
+                const checkOutTime = new Date(breakEntry.checkOutTime);
+                const checkInTime = new Date();
+                const diffMs = checkInTime - checkOutTime;
+                const diffHrs = Math.floor(diffMs / 3600000);
+                const diffMins = Math.round((diffMs % 3600000) / 60000);
+                const duration = `${diffHrs} ម៉ោង ${diffMins} នាទី`;
+                
+                const dataToSave = {
+                    employeeId: breakEntry.id, employeeName: breakEntry.name, department: breakEntry.department,
+                    date: new Date().toLocaleDateString('en-CA'),
+                    startTime: checkOutTime.toLocaleTimeString('en-GB'),
+                    stopTime: checkInTime.toLocaleTimeString('en-GB'),
+                    duration: duration
+                };
+
+                const saveSuccess = await saveData(dataToSave);
+
+                if (saveSuccess) {
+                    const updatedBreaks = breaks.filter(b => b.id !== employeeId);
+                    saveBreaksToStorage(updatedBreaks);
+                    const recordDiv = recordsContainer.querySelector(`.employee-record[data-id="${employeeId}"]`);
+                    if (recordDiv) {
+                        recordDiv.classList.add('completed');
+                        setTimeout(() => {
+                            recordDiv.style.opacity = '0';
+                            recordDiv.style.transform = 'translateX(50px)';
+                            setTimeout(() => renderBreakList(), 500);
+                        }, 1000);
                     }
                 } else {
-                    const isAlreadyCheckedOut = checkedOutUsers.some(user => 
-                        faceapi.euclideanDistance(user.descriptor, detection.descriptor) < faceMatcherThreshold
-                    );
-
-                    if (!isAlreadyCheckedOut) {
-                        const newUserLabel = `ID-${nextUserId}`;
-                        checkedOutUsers.push({
-                            label: newUserLabel,
-                            descriptor: detection.descriptor
-                        });
-                        logEvent(`➡️ បុគ្គលិក ${newUserLabel} បាន​ស្កេន​ចេញ`, 'checkout');
-                        nextUserId++;
-                    }
+                     alert('រក្សាទុកទិន្នន័យមិនสำเร็จ! សូមព្យាយាមម្តងទៀត។');
                 }
+            };
+
+            const addEmployeeToUI = (breakEntry) => {
+                 const checkOutTime = new Date(breakEntry.checkOutTime);
+                const recordDiv = document.createElement('div');
+                recordDiv.classList.add('employee-record');
+                recordDiv.setAttribute('data-id', breakEntry.id);
+                recordDiv.setAttribute('data-search-term', `${breakEntry.name} ${breakEntry.id}`.toLowerCase());
+
+                recordDiv.innerHTML = `
+                    <div class="employee-photo">
+                        <img src="${breakEntry.photoUrl}" alt="Photo of ${breakEntry.name}" onerror="this.onerror=null;this.src='${DEFAULT_AVATAR}';">
+                    </div>
+                    <div class="employee-info">
+                        <h4>${breakEntry.name} (${breakEntry.id})</h4>
+                        <p><strong>ផ្នែក:</strong> ${breakEntry.department}</p>
+                        <p><strong>ម៉ោងចេញ:</strong> <span class="start-time">${checkOutTime.toLocaleTimeString('en-GB')}</span></p>
+                        <p><strong>ម៉ោងចូល:</strong> <span class="stop-time">--:--:--</span></p>
+                        <p><strong>រយៈពេលសម្រាក:</strong> <span class="duration">--</span></p>
+                        <p class="overdue-status"></p>
+                    </div>
+                    <div class="employee-actions">
+                        <button class="btn btn-delete">លុប</button>
+                        <button class="btn btn-check-in">ចូល</button> 
+                    </div>
+                `;
+                recordsContainer.appendChild(recordDiv);
+
+                const checkInBtn = recordDiv.querySelector('.btn-check-in');
+                checkInBtn.addEventListener('click', () => handleCheckIn(breakEntry.id), { once: true });
+
+                const deleteBtn = recordDiv.querySelector('.btn-delete');
+                deleteBtn.addEventListener('click', () => {
+                    if (confirm(`តើអ្នកពិតជាចង់លុប "${breakEntry.name}" មែនទេ?`)) {
+                        const breaks = getBreaksFromStorage().filter(b => b.id !== breakEntry.id);
+                        saveBreaksToStorage(breaks);
+                        renderBreakList();
+                    }
+                });
+            };
+
+            const renderBreakList = () => {
+                recordsContainer.innerHTML = '';
+                const breaks = getBreaksFromStorage();
+                breaks.sort((a, b) => new Date(a.checkOutTime) - new Date(b.checkOutTime));
+                breaks.forEach(breakEntry => addEmployeeToUI(breakEntry));
+                updateActiveBreakDatalist();
+                checkOverdueBreaks();
+            };
+
+            // --- MAIN INITIALIZATION (RESTRUCTURED) ---
+            async function initializeApp() {
+                setKhmerDate();
+                renderBreakList();
+                
+                const modelsPromise = loadFaceApiModels();
+                
+                await loadEmployeeData();
+
+                await modelsPromise;
+                if(employeeData.length > 0) {
+                    await getOrCreateFaceMatcher(employeeData);
+                } else {
+                    scanFaceBtn.textContent = 'គ្មានបុគ្គលិកក្នុងវេននេះ';
+                }
+
+                resetInactivityTimer();
+                resetFilterTimer();
+                setInterval(checkOverdueBreaks, 30000);
             }
-        }
 
-        function logEvent(message, type) {
-            const li = document.createElement('li');
-            const time = new Date().toLocaleTimeString('en-GB');
+            // --- EVENT LISTENERS ---
+            employeeInput.addEventListener('input', (e) => {
+                const value = e.target.value;
+                const selectedEmployee = employeeData.find(emp => emp.searchValue === value);
+                if (selectedEmployee) {
+                    handleCheckOutById(selectedEmployee.id);
+                }
+            });
             
-            li.innerHTML = `<strong>[${time}]</strong>: ${message}`;
+            scanFaceBtn.addEventListener('click', startFaceScanner);
+            closeFaceModalBtn.addEventListener('click', stopFaceScanner);
+
+            filterInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const records = recordsContainer.querySelectorAll('.employee-record');
+                records.forEach(record => {
+                    const recordSearchTerm = record.getAttribute('data-search-term');
+                    if (recordSearchTerm.includes(searchTerm)) {
+                        record.style.display = 'grid';
+                    } else {
+                        record.style.display = 'none';
+                    }
+                });
+            });
+
+            mainTitle.addEventListener('click', () => {
+                showSelectionCard();
+                resetInactivityTimer();
+            });
+
+            recordsCardTitle.addEventListener('click', () => {
+                showFilterBox();
+                resetFilterTimer();
+            });
+
+            ['mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+                document.addEventListener(event, () => {
+                    resetInactivityTimer();
+                    resetFilterTimer();
+                });
+            });
             
-            if (type === 'checkin') {
-                li.className = 'text-green-700 bg-green-50';
-            } else if (type === 'checkout') {
-                li.className = 'text-blue-700 bg-blue-50';
-            }
-
-            logList.prepend(li);
-        }
-
-        run();
+            initializeApp();
+        });
     </script>
 </body>
 </html>
