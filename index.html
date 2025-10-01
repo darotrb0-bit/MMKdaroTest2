@@ -12,6 +12,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        @property --angle {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
+
         body {
             font-family: 'Kantumruy Pro', sans-serif;
             background-color: #000000;
@@ -100,30 +106,81 @@
         }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes modal-fade-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes modal-fade-in { 
+            from { opacity: 0; transform: translateY(30px) scale(0.98); } 
+            to { opacity: 1; transform: translateY(0) scale(1); } 
+        }
         .boot-sequence { opacity: 0; animation: fadeIn 1s ease-out forwards; }
         .data-line { opacity: 0; transition: opacity 0.5s ease; }
         .sci-fi-modal-bg {
              background:
-                linear-gradient(rgba(10, 20, 10, 0.9), rgba(10, 20, 10, 0.9)),
-                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23053005' fill-opacity='0.2'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h16v9h1v-9h9v9h1v-9h9v9h1v-9h9v9h1v-9h9v9h1v-9h9v9h1v-9h9v9h1v-9h9v9h1v-9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10-9v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10-9v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10-9v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10-9v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10-9v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10-9v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10-9v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9z'/%3E%3Cpath d='M6 5V0h1v5h94V0h1v5h-1v90h1v1H6v-1h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+                linear-gradient(to top, rgba(0, 255, 0, 0.08) 1px, transparent 1px),
+                linear-gradient(to right, rgba(0, 255, 0, 0.08) 1px, transparent 1px),
+                linear-gradient(rgba(10, 20, 10, 0.97), rgba(10, 20, 10, 0.97)),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23053005' fill-opacity='0.2'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h16v9h1v-9h9v9h1v-9h9v9h1v-9h9v9h1v-9h9v9h1v-9h9v9h1v-9h9v9h1v-9h9v9h1v-9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10-9v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10-9v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10-9v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10-9v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10-9v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9zm10 0v-9h9v9h-9z'/%3E%3Cpath d='M6 5V0h1v5h94V0h1v5h-1v90h1v1H6v-1h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+             background-size: 25px 25px, 25px 25px, auto, auto;
         }
-        .corner-brackets { position: absolute; width: 20px; height: 20px; border-color: #4ade80; border-style: solid; }
-        .corner-brackets.top-left { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
-        .corner-brackets.top-right { top: -2px; right: -2px; border-width: 2px 2px 0 0; }
-        .corner-brackets.bottom-left { bottom: -2px; left: -2px; border-width: 0 0 2px 2px; }
-        .corner-brackets.bottom-right { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
+        .animated-border-box {
+            position: relative; z-index: 1; padding: 2px;
+        }
+        .animated-border-box::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: conic-gradient(from var(--angle), transparent 25%, #ca8a04, #fde047 50%, #ca8a04, transparent 75%);
+            animation: spin 4s linear infinite; z-index: -2; filter: blur(20px) brightness(1.8);
+        }
+         .animated-border-box::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: #081108; z-index: -1;
+        }
+        .animated-border-box-photo {
+            position: relative; z-index: 1; padding: 2px;
+        }
+        .animated-border-box-photo::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: conic-gradient(from var(--angle), transparent 70%, #ffffff, transparent);
+            border-radius: inherit; animation: spin 5s linear infinite; z-index: -2;
+            filter: blur(8px) brightness(1.5);
+        }
+         .animated-border-box-photo::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: #061406; border-radius: inherit; z-index: -1;
+        }
+        @keyframes spin { to { --angle: 360deg; } }
         .data-scramble { position: relative; }
-        .data-label { color: #4ade80; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; }
-        @keyframes scan-glow {
-            0% { box-shadow: 0 0 4px #4ade80, inset 0 0 4px #4ade80; }
-            50% { box-shadow: 0 0 12px #86efac, inset 0 0 12px #86efac; }
-            100% { box-shadow: 0 0 4px #4ade80, inset 0 0 4px #4ade80; }
+        .data-label { color: #86efac; text-shadow: 0 0 3px rgba(134, 239, 172, 0.4); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; }
+        .corner-brackets {
+            position: absolute; width: 25px; height: 25px; border-color: #ca8a04; border-style: solid; opacity: 0.8; text-shadow: 0 0 8px #facc15;
+            animation: pulse-corners 2s infinite ease-in-out;
         }
-        .profile-image-container {
-            border: 2px solid #4ade80; padding: 4px; background: #000; animation: scan-glow 3s linear infinite;
+        .corner-brackets.top-left { top: -4px; left: -4px; border-width: 3px 0 0 3px; }
+        .corner-brackets.top-right { top: -4px; right: -4px; border-width: 3px 3px 0 0; animation-delay: 0.2s; }
+        .corner-brackets.bottom-left { bottom: -4px; left: -4px; border-width: 0 0 3px 3px; animation-delay: 0.4s; }
+        .corner-brackets.bottom-right { bottom: -4px; right: -4px; border-width: 0 3px 3px 0; animation-delay: 0.6s; }
+        .data-scramble, .text-yellow-300, .text-yellow-500 { text-shadow: 0 0 8px rgba(250, 204, 21, 0.5); }
+        
+        #modal-container::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #86efac;
+            box-shadow: 0 0 10px #86efac, 0 0 20px #86efac;
+            animation: scan-modal 3.5s linear infinite;
+            animation-delay: 0.5s;
+            z-index: 10;
+            opacity: 0.4;
         }
-
+        @keyframes scan-modal {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 0.4; }
+            90% { opacity: 0.4; }
+            100% { top: 100%; opacity: 0; }
+        }
+        @keyframes pulse-corners {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -160,25 +217,26 @@
     <div id="cameraModal" class="fixed inset-0 w-full h-full z-50 hidden items-center justify-center bg-black/80">
         <div class="scanline"></div>
         <video id="video" autoplay muted playsinline class="max-w-full max-h-full"></video>
-        <canvas id="overlay" class="absolute top-0 left-0"></canvas>
+        <canvas id="overlay" class="absolute top-0 left: 0"></canvas>
         <button id="closeCameraModalButton" class="absolute top-4 right-4 text-white text-3xl z-50 hover:text-green-400 transition"><i class="fa-solid fa-xmark"></i></button>
         <button id="switchCameraButton" class="absolute bottom-4 left-4 text-white bg-black/50 p-3 rounded-full z-50 hover:bg-green-400/50 transition"><i class="fa-solid fa-camera-rotate"></i></button>
         <div id="scanStatus" class="absolute bottom-4 font-mono text-white bg-black/50 px-4 py-2 rounded-lg">...</div>
     </div>
     
     <!-- Info Modal -->
-    <div id="infoModal" class="fixed inset-0 w-full h-full z-50 hidden items-center justify-center bg-black/80" style="animation: modal-fade-in 0.3s ease-out;">
-        <div class="sci-fi-modal-bg hacker-card w-full max-w-2xl m-4 p-1 rounded-lg relative">
-            <div class="corner-brackets top-left"></div><div class="corner-brackets top-right"></div>
-            <div class="corner-brackets bottom-left"></div><div class="corner-brackets bottom-right"></div>
-            <button id="closeInfoModalButton" class="absolute top-2 right-2 text-gray-400 text-2xl hover:text-green-400 transition z-10"><i class="fa-solid fa-times-circle"></i></button>
-    
-            <div class="p-6">
-                <div class="flex justify-between items-start border-b border-green-800 pb-2 mb-4">
-                    <h2 class="text-lg font-bold text-green-300 glitch" data-text="SUBJECT FILE">SUBJECT FILE</h2>
-                    <div class="text-xs font-mono text-green-500 pt-1">_ID: <span id="modal-student-id"></span></div>
+    <div id="infoModal" class="fixed inset-0 w-full h-full z-50 hidden items-center justify-center bg-black/90 p-4" style="animation: modal-fade-in 0.5s ease-out;">
+        <div id="modal-container" class="relative w-full max-w-2xl">
+             <div class="animated-border-box">
+                  <div class="sci-fi-modal-bg w-full p-6 relative">
+                    <div class="corner-brackets top-left"></div><div class="corner-brackets top-right"></div>
+                    <div class="corner-brackets bottom-left"></div><div class="corner-brackets bottom-right"></div>
+                    
+                    <div class="flex justify-between items-start border-b border-yellow-800/50 pb-2 mb-4">
+                        <h2 class="text-lg font-bold text-yellow-300 glitch" data-text="SUBJECT FILE">SUBJECT FILE</h2>
+                        <div class="text-xs font-mono text-yellow-500 pt-1">_ID: <span id="modal-student-id"></span></div>
+                    </div>
+                    <div id="infoModalContent"></div>
                 </div>
-                <div id="infoModalContent"></div>
             </div>
         </div>
     </div>
@@ -210,7 +268,12 @@
         });
     };
     setInterval(drawMatrix, 33);
-    window.addEventListener('resize', () => { /* ... resize logic ... */ });
+    window.addEventListener('resize', () => { 
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        columns = canvas.width / fontSize;
+        rainDrops = Array.from({ length: columns }).fill(1);
+    });
 
     // --- Sound Engine (Upgraded) ---
     let soundsReady = false;
@@ -232,11 +295,11 @@
             soundsReady = true;
             console.log("Audio context started.");
         }
-    }, { once: true });
+    });
 
 
     // --- Configuration & DOM Elements ---
-    const API_KEY = 'AIzaSyC6E9ON7DsgkMZEc6obtWehyqzGWwd_EII';
+    const API_KEY = 'AIzaSyC6E9ON7DsgkMZEc6obtWehyqzGWwd_EII'; // WARNING: Exposing API keys on the client-side is a security risk.
     const SHEET_ID = '1_Kgl8UQXRsVATt_BOHYQjVWYKkRIBA12R-qnsBoSUzc';
     const SHEET_NAME = 'បញ្ជឺឈ្មោះរួម';
     const DATA_RANGE = 'C9:AA';
@@ -258,9 +321,7 @@
     const scanStatus = document.getElementById('scanStatus');
     const infoModal = document.getElementById('infoModal');
     const infoModalContent = document.getElementById('infoModalContent');
-    const closeInfoModalButton = document.getElementById('closeInfoModalButton');
     const modalStudentId = document.getElementById('modal-student-id');
-
 
     let studentDataCache = [];
     let faceMatcher = null;
@@ -270,22 +331,20 @@
 
     const COL_INDEX = { GENERATION: 0, YEAR: 1, ID: 2, GROUP: 4, NAME_KHMER: 9, NAME_LATIN: 10, GENDER: 11, CLASS: 15, DEPARTMENT: 16, IMAGE_URL: 24 };
     
-    function typewriterEffect(element, text, speed = 20, onComplete = () => {}) {
+    // CORRECTED TYPEWRITER EFFECT
+    function typewriterEffect(element, text, speed = 25, onComplete = () => {}) {
         element.textContent = '';
-        element.classList.remove('text-yellow-400');
-        element.classList.add('text-green-400');
         let i = 0;
-        function type() {
+        const typeInterval = setInterval(() => {
             if (i < text.length) {
                 playSound(typingSound, null, '64n');
                 element.textContent += text.charAt(i);
                 i++;
-                setTimeout(type, speed);
             } else {
-                onComplete();
+                clearInterval(typeInterval);
+                if (onComplete) onComplete();
             }
-        }
-        type();
+        }, speed);
     }
 
     // Function to fetch with a timeout
@@ -348,7 +407,7 @@
             await createFaceMatcher();
         } catch (error) {
             console.error('Failed to fetch data:', error);
-            typewriterEffect(statusMessage, 'ការតភ្ជាប់ล้มเหลว. សូមពិនិត្យ Console');
+            typewriterEffect(statusMessage, 'ការតភ្ជាប់បានបរាជ័យ. សូមពិនិត្យមើល Console');
             playSound(errorSound, 'C2', '4n');
         }
     }
@@ -369,8 +428,8 @@
             
             if (label && imageUrl) {
                 try {
+                    await new Promise(resolve => setTimeout(resolve, 100)); 
                     const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`;
-                    // Use fetchWithTimeout here
                     const response = await fetchWithTimeout(proxyUrl, { timeout: 10000 });
                     if(!response.ok) throw new Error(`Fetch failed with status ${response.status}`);
                     const blob = await response.blob();
@@ -391,7 +450,7 @@
             typewriterEffect(statusMessage, 'ប្រព័ន្ធរួចរាល់. រង់ចាំការបញ្ជា');
             playSound(successSound, ['C5', 'E5', 'G5'], '8n');
         } else {
-            typewriterEffect(statusMessage, 'ការចងក្រងទិន្នន័យล้มเหลว. សូមពិនិត្យ URL រូបភាព');
+            typewriterEffect(statusMessage, 'ការចងក្រងទិន្នន័យបានបរាជ័យ. សូមពិនិត្យ URL រូបភាព');
             playSound(errorSound, 'C2', '4n');
         }
     }
@@ -418,32 +477,33 @@
         modalStudentId.textContent = row[COL_INDEX.ID] || 'N/A';
         infoModalContent.innerHTML = `
             <div class="flex flex-col md:flex-row items-start space-y-4 md:space-y-0 md:space-x-6">
-                <div class="profile-image-container rounded-md mx-auto md:mx-0">
-                    <img src="${row[COL_INDEX.IMAGE_URL]}" onerror="this.src='https://placehold.co/150x150/0a140a/a3e635?text=NO+SIG';" alt="Student Photo" class="w-36 h-36 object-cover">
+                 <div class="animated-border-box-photo mx-auto md:mx-0">
+                     <img src="${row[COL_INDEX.IMAGE_URL]}" onerror="this.src='https://placehold.co/144x160/0a140a/a3e635?text=NO+IMAGE';" alt="Student Photo" class="w-36 h-40 object-cover">
                 </div>
-                <div class="flex-grow w-full">
+                <div class="flex-grow w-full space-y-4">
                     <div class="data-line">
-                        <p class="data-label text-sm">SUBJECT NAME</p>
-                        <h3 class="data-scramble text-2xl text-green-300 font-bold" data-final="${row[COL_INDEX.NAME_KHMER] || 'N/A'}"></h3>
+                        <p class="data-label">SUBJECT NAME</p>
+                        <h3 class="data-scramble text-xl text-green-300 font-bold" data-final="${row[COL_INDEX.NAME_KHMER] || 'N/A'}"></h3>
                         <p class="data-scramble font-mono text-green-400" data-final="${row[COL_INDEX.NAME_LATIN] || 'N/A'}"></p>
                     </div>
-                     <div class="data-line mt-4">
-                        <p class="data-label text-sm">BIOMETRIC DATA</p>
+                     <div class="data-line">
+                        <p class="data-label">BIOMETRIC DATA</p>
                          <p class="data-scramble font-mono" data-final="GENDER: ${row[COL_INDEX.GENDER] || 'N/A'}"></p>
                     </div>
-                </div>
-            </div>
-            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm font-mono border-t border-green-800 pt-4">
-                <div class="data-line">
-                    <p class="data-label text-sm">ACADEMIC RECORD</p>
-                    <p class="data-scramble" data-final="DEPARTMENT: ${row[COL_INDEX.DEPARTMENT] || 'N/A'}"></p>
-                    <p class="data-scramble" data-final="CLASS: ${row[COL_INDEX.CLASS] || 'N/A'}"></p>
-                </div>
-                 <div class="data-line">
-                    <p class="data-label text-sm">COHORT INFO</p>
-                    <p class="data-scramble" data-final="GROUP: ${row[COL_INDEX.GROUP] || 'N/A'}"></p>
-                    <p class="data-scramble" data-final="GENERATION: ${row[COL_INDEX.GENERATION] || 'N/A'}"></p>
-                    <p class="data-scramble" data-final="YEAR: ${row[COL_INDEX.YEAR] || 'N/A'}"></p>
+                     <hr class="border-yellow-800/50 my-1">
+                     <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm font-mono">
+                        <div class="data-line">
+                            <p class="data-label">ACADEMIC RECORD</p>
+                            <p class="data-scramble" data-final="DEPARTMENT: ${row[COL_INDEX.DEPARTMENT] || 'N/A'}"></p>
+                            <p class="data-scramble" data-final="CLASS: ${row[COL_INDEX.CLASS] || 'N/A'}"></p>
+                        </div>
+                         <div class="data-line">
+                            <p class="data-label">COHORT INFO</p>
+                            <p class="data-scramble" data-final="GROUP: ${row[COL_INDEX.GROUP] || 'N/A'}"></p>
+                            <p class="data-scramble" data-final="GENERATION: ${row[COL_INDEX.GENERATION] || 'N/A'}"></p>
+                            <p class="data-scramble" data-final="YEAR: ${row[COL_INDEX.YEAR] || 'N/A'}"></p>
+                        </div>
+                    </div>
                 </div>
             </div>`;
         infoModal.classList.remove('hidden');
@@ -458,7 +518,7 @@
                     scrambleText(el, el.dataset.final);
                     playSound(typingSound, null, '64n');
                 });
-            }, index * 400); 
+            }, index * 300); 
         });
     }
 
@@ -511,7 +571,7 @@
                 if (bestMatch && bestMatch.label !== 'unknown') {
                     const studentRow = studentDataCache.find(row => row[COL_INDEX.ID] === bestMatch.label);
                     if (studentRow) {
-                        typewriterEffect(statusMessage, `រកឃើញមុខตรงกัน: ${bestMatch.label}`);
+                        typewriterEffect(statusMessage, `រកឃើញមុខត្រូវគ្នា: ${bestMatch.label}`);
                         playSound(successSound, ['A5', 'C6', 'E6'], '8n');
                         displayStudentInfo(studentRow);
                         stopCamera();
@@ -555,14 +615,14 @@
             if (bestMatch && bestMatch.label !== 'unknown') {
                 const studentRow = studentDataCache.find(row => row[COL_INDEX.ID] === bestMatch.label);
                 displayStudentInfo(studentRow);
-                typewriterEffect(statusMessage, `រកឃើញមុខตรงกัน: ${bestMatch.label}`);
+                typewriterEffect(statusMessage, `រកឃើញមុខត្រូវគ្នា: ${bestMatch.label}`);
                 playSound(successSound, ['C5', 'E5', 'G5'], '8n');
             } else {
-                typewriterEffect(statusMessage, 'ការវិភាគเสร็จสิ้น: រកមិនឃើញមុខตรงกัน');
+                typewriterEffect(statusMessage, 'ការវិភាគបានបញ្ចប់: រកមិនឃើញមុខត្រូវគ្នា');
                 playSound(errorSound, 'E2', '4n');
             }
         } else {
-            typewriterEffect(statusMessage, 'ការវិភាគล้มเหลว: រកមិនឃើញផ្ទៃមុខ');
+            typewriterEffect(statusMessage, 'ការវិភាគបានបរាជ័យ: រកមិនឃើញផ្ទៃមុខ');
             playSound(errorSound, 'C2', '4n');
         }
     }
@@ -594,10 +654,15 @@
         imageUploadInput.click();
     });
     imageUploadInput.addEventListener('change', handleImageUpload);
-    closeInfoModalButton.addEventListener('click', () => {
+    
+    // --- MODAL CLOSING LOGIC (Double Click) ---
+    function closeInfoModal() {
+        playSound(actionSound, 'G3', '16n');
         infoModal.classList.add('hidden');
         infoModal.classList.remove('flex');
-    });
+    }
+    
+    infoModal.addEventListener('dblclick', closeInfoModal);
 
 </script>
 </body>
