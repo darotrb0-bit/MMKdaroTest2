@@ -274,37 +274,17 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- FIREBASE CONFIGURATION (សូមបំពេញព័ត៌មានរបស់អ្នកនៅទីនេះ) ---
-            const firebaseConfig = {
-                apiKey: "YOUR_API_KEY",
-                authDomain: "YOUR_AUTH_DOMAIN",
-                projectId: "YOUR_PROJECT_ID",
-                storageBucket: "YOUR_STORAGE_BUCKET",
-                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-                appId: "YOUR_APP_ID"
-            };
-
-            // --- Initialize Firebase ---
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
-            const auth = firebase.auth();
-            const breaksCollection = db.collection('breaks');
-
+            
             // --- CONFIGURATION ---
             const SHEET_ID = '1eRyPoifzyvB4oBmruNyXcoKMKPRqjk6xDD6-bPNW6pc';
             const SHEET_NAME = 'DIList';
             const RANGE = 'E9:AI';
             const READ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&range=${RANGE}`;
             const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxCekjXECxkU-hmWzik1wChzCF7YpWxb7ZA1RHazuxMaUInNRU2nZoe7uh0sdzkXxr6/exec';
-            const FACE_DESCRIPTORS_KEY = 'faceDescriptorsCache';
+            const STORAGE_KEY = 'activeBreaks'; // Using Local Storage
             const DEFAULT_AVATAR = 'https://i.stack.imgur.com/34AD2.jpg';
             const OVERDUE_MINUTES = 15;
             const CONSECUTIVE_MATCHES_REQUIRED = 3;
@@ -316,12 +296,8 @@
             const currentDateDisplay = document.getElementById('current-date');
             const recordsContainer = document.getElementById('employee-records-container');
             const filterInput = document.getElementById('filter-input');
-            const filterBoxContainer = document.querySelector('.records-card .form-group');
-            const recordsCardTitle = document.querySelector('.records-card h2');
-            const activeBreakDatalist = document.getElementById('active-break-list');
             const loader = document.getElementById('loader');
             const loaderMessage = document.getElementById('loader-message');
-            const selectionCard = document.querySelector('.selection-card');
             const scanFaceBtn = document.getElementById('scan-face-btn');
             const faceScannerModal = document.getElementById('face-scanner-modal');
             const closeFaceModalBtn = document.getElementById('close-face-modal');
@@ -332,15 +308,12 @@
             // --- STATE VARIABLES ---
             let allEmployeeData = [];
             let activeEmployeeData = [];
-            let inactivityTimer;
-            let filterInactivityTimer;
             let videoStream;
             let faceMatcher;
             let faceScanInterval;
             let isFaceApiReady = false;
             let matchBuffer = [];
             let currentFacingMode = 'user'; // Start with front camera
-            let onBreakList = []; // Local cache of who is on break
 
             // --- HELPER FUNCTIONS ---
             const showLoader = (show, message = '') => {
@@ -348,13 +321,17 @@
                 loader.style.display = show ? 'flex' : 'none';
             };
 
+            const getBreaksFromStorage = () => JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            const saveBreaksToStorage = (breaks) => localStorage.setItem(STORAGE_KEY, JSON.stringify(breaks));
+
             const speak = (text) => {
-                if ('speechSynthesis' in window) {
+                if ('speechSynthesis' in window && window.speechSynthesis.getVoices().length > 0) {
                     const utterance = new SpeechSynthesisUtterance(text);
                     utterance.lang = 'km-KH';
                     window.speechSynthesis.speak(utterance);
                 }
             };
+            window.speechSynthesis.onvoiceschanged = () => console.log("Voices loaded.");
 
             // --- UI & DATE FUNCTIONS ---
             const setKhmerDate = () => {
@@ -368,10 +345,11 @@
             
             const checkOverdueBreaks = () => {
                 const now = new Date();
-                onBreakList.forEach(breakEntry => {
+                const breaks = getBreaksFromStorage();
+                breaks.forEach(breakEntry => {
                     const recordDiv = recordsContainer.querySelector(`.employee-record[data-id="${breakEntry.id}"]`);
                     if (recordDiv) {
-                        const checkOutTime = breakEntry.checkOutTime.toDate(); // Firestore timestamp to Date
+                        const checkOutTime = new Date(breakEntry.checkOutTime);
                         const diffMinutes = (now - checkOutTime) / 60000;
                         const overdueStatusEl = recordDiv.querySelector('.overdue-status');
                         if (diffMinutes > OVERDUE_MINUTES) {
@@ -402,7 +380,28 @@
 
             async function getOrCreateFaceMatcher(employeeList) {
                 if (!isFaceApiReady || employeeList.length === 0) return;
-                // Caching is complex with dynamic schedules, so we rebuild it on each load for accuracy.
+                
+                const today = new Date();
+                const shift = today.getHours() < 12 ? 'morning' : 'afternoon';
+                const dateString = today.toISOString().split('T')[0];
+                const cacheKey = `faceDescriptors-${dateString}-${shift}`;
+                const cachedData = localStorage.getItem(cacheKey);
+
+                if (cachedData) {
+                    try {
+                        const descriptors = JSON.parse(cachedData).map(item => faceapi.LabeledFaceDescriptors.fromJSON(item));
+                        faceMatcher = new faceapi.FaceMatcher(descriptors, 0.45); 
+                        scanFaceBtn.disabled = false;
+                        scanFaceBtn.textContent = 'ស្កេនផ្ទៃមុខ';
+                        console.log('Face Matcher created from cache for:', cacheKey);
+                        showLoader(false);
+                        return;
+                    } catch (e) {
+                        console.error("Failed to parse cached descriptors, fetching again.", e);
+                        localStorage.removeItem(cacheKey);
+                    }
+                }
+
                 showLoader(true, 'កំពុងរៀបចំទិន្នន័យផ្ទៃមុខ...');
                 try {
                     let processedCount = 0;
@@ -420,10 +419,7 @@
                                 const img = await faceapi.fetchImage(emp.photoUrl);
                                 const detections = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
                                 updateProgress();
-                                if (!detections) {
-                                    console.warn(`មិនអាចសម្គាល់ផ្ទៃមុខសម្រាប់: ${emp.name}`);
-                                    return null;
-                                }
+                                if (!detections) return null;
                                 return new faceapi.LabeledFaceDescriptors(emp.id, [detections.descriptor]);
                             } catch (e) {
                                 console.error(`Failed to process image for ${emp.name}:`, e);
@@ -435,7 +431,8 @@
                     const validDescriptors = labeledFaceDescriptors.filter(d => d !== null);
                      if (validDescriptors.length > 0) {
                         faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.45);
-                        console.log('Face Matcher created.');
+                        localStorage.setItem(cacheKey, JSON.stringify(validDescriptors));
+                        console.log('Face Matcher created and saved to cache:', cacheKey);
                         scanFaceBtn.disabled = false;
                         scanFaceBtn.textContent = 'ស្កេនផ្ទៃមុខ';
                     } else {
@@ -460,7 +457,6 @@
                         video: { facingMode: currentFacingMode } 
                     });
                     faceVideo.srcObject = videoStream;
-                    // Mirror video if front camera is active
                     faceVideo.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
                     faceCanvas.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
                     faceScannerModal.style.display = 'flex';
@@ -503,7 +499,6 @@
                                         matchBuffer = [];
                                     }
                                 }
-
                             } else {
                                 matchBuffer = [];
                             }
@@ -537,6 +532,7 @@
                     const scheduleColIndex = [30, 24, 25, 26, 27, 28, 29][day]; 
                     
                     activeEmployeeData = allEmployeeData.filter(row => {
+                        if(row.length <= scheduleColIndex) return false;
                         const schedule = row[scheduleColIndex]?.trim() || '';
                         if (!schedule) return false;
                         if (shift === 'morning') {
@@ -569,7 +565,8 @@
             };
 
             const handleScanResult = async (employeeId) => {
-                const isOnBreak = onBreakList.some(b => b.id === employeeId);
+                const breaks = getBreaksFromStorage();
+                const isOnBreak = breaks.some(b => b.id === employeeId);
                 if (isOnBreak) {
                     await handleCheckIn(employeeId);
                 } else {
@@ -584,9 +581,8 @@
                     return;
                 }
 
-                // --- Cross-device check ---
-                const breakDoc = await breaksCollection.doc(employeeId).get();
-                if (breakDoc.exists) {
+                const breaks = getBreaksFromStorage();
+                if (breaks.some(b => b.id === employeeId)) {
                     alert(`បុគ្គលិកនេះ (${selectedEmployee.name}) បានចុះឈ្មោះចេញទៅក្រៅរួចហើយ។`);
                     return;
                 }
@@ -596,19 +592,22 @@
                     name: selectedEmployee.name,
                     department: selectedEmployee.department,
                     photoUrl: selectedEmployee.photoUrl,
-                    checkOutTime: firebase.firestore.FieldValue.serverTimestamp()
+                    checkOutTime: new Date().toISOString()
                 };
                 
-                await breaksCollection.doc(employeeId).set(newBreak);
+                breaks.push(newBreak);
+                saveBreaksToStorage(breaks);
+                renderBreakList();
                 speak(`${selectedEmployee.id} បានឆែកចេញត្រឹមត្រូវ`);
                 employeeInput.value = '';
             };
 
             const handleCheckIn = async (employeeId) => {
-                const breakEntry = onBreakList.find(b => b.id === employeeId);
+                const breaks = getBreaksFromStorage();
+                const breakEntry = breaks.find(b => b.id === employeeId);
                 if (!breakEntry) return;
 
-                const checkOutTime = breakEntry.checkOutTime.toDate();
+                const checkOutTime = new Date(breakEntry.checkOutTime);
                 const checkInTime = new Date();
                 const diffMs = checkInTime - checkOutTime;
                 const diffHrs = Math.floor(diffMs / 3600000);
@@ -626,7 +625,9 @@
                 const saveSuccess = await saveData(dataToSave);
 
                 if (saveSuccess) {
-                    await breaksCollection.doc(employeeId).delete();
+                    const updatedBreaks = breaks.filter(b => b.id !== employeeId);
+                    saveBreaksToStorage(updatedBreaks);
+                    renderBreakList();
                     speak(`${breakEntry.id} បានឆែកចូលមកវិញត្រឹមត្រូវ`);
                 } else {
                      alert('រក្សាទុកទិន្នន័យមិនสำเร็จ! សូមព្យាយាមម្តងទៀត។');
@@ -645,17 +646,16 @@
                 } catch (error) { console.error('Save failed:', error); return false; } finally { showLoader(false); }
             };
 
-
-            const renderBreakList = (breaks) => {
-                onBreakList = breaks; // Update local cache
+            const renderBreakList = () => {
+                const breaks = getBreaksFromStorage();
                 recordsContainer.innerHTML = '';
-                breaks.sort((a, b) => a.checkOutTime.seconds - b.checkOutTime.seconds);
+                breaks.sort((a, b) => new Date(a.checkOutTime) - new Date(b.checkOutTime));
                 breaks.forEach(breakEntry => addEmployeeToUI(breakEntry));
                 checkOverdueBreaks();
             };
 
             const addEmployeeToUI = (breakEntry) => {
-                const checkOutTime = breakEntry.checkOutTime.toDate();
+                const checkOutTime = new Date(breakEntry.checkOutTime);
                 const recordDiv = document.createElement('div');
                 recordDiv.classList.add('employee-record');
                 recordDiv.setAttribute('data-id', breakEntry.id);
@@ -683,12 +683,7 @@
             // --- MAIN INITIALIZATION ---
             async function initializeApp() {
                 setKhmerDate();
-                auth.signInAnonymously().catch(error => console.error("Anonymous auth failed:", error));
-                
-                breaksCollection.onSnapshot(snapshot => {
-                    const breaks = snapshot.docs.map(doc => doc.data());
-                    renderBreakList(breaks);
-                });
+                renderBreakList();
 
                 const modelsPromise = loadFaceApiModels();
                 await loadEmployeeData();
