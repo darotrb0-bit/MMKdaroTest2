@@ -120,7 +120,7 @@
     <script>
         // --- CONFIGURATION ---
         // !!! សំខាន់៖ សូមដាក់ Google Sheets API Key របស់អ្នកនៅទីនេះ
-        const API_KEY = 'https://console.cloud.google.com/'; // <--- សូមប្តូរ API KEY
+        const API_KEY = 'AIzaSyC6E9ON7DsgkMZEc6obtWehyqzGWwd_EII'; // <--- សូមប្តូរ API KEY
         const SPREADSHEET_ID = '1eRyPoifzyvB4oBmruNyXcoKMKPRqjk6xDD6-bPNW6pc';
         const SHEET_NAME = 'DIList';
         const DATA_RANGE = 'A9:AA'; // ទាញយកទិន្នន័យទាំងអស់ដើម្បីការពារការខុស index
@@ -195,52 +195,45 @@
         async function createFaceMatcher() {
             loadingMessage.textContent = 'កំពុងទាញយកទិន្នន័យនិស្សិត...';
             if (API_KEY === 'YOUR_GOOGLE_API_KEY') {
-                loadingMessage.textContent = "Error: API Key is missing!";
-                loadingProgress.textContent = "សូមដាក់ Google API Key របស់អ្នកក្នុងកូដជាមុនសិន។";
-                return;
-            }
-            try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!${DATA_RANGE}?key=${API_KEY}`;
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error.message);
-                }
-
-                const rows = data.values || [];
-                studentData = rows.map(row => ({
-                    id: row[11] || '', // L
-                    fullName: row[4] || '', // E
-                    latinName: row[12] || '', // M
-                    gender: row[13] || '', // N
-                    department: row[18] || '', // S
-                    group: row[6] || '', // G
-                    class: row[17] || '', // R
-                    generation: row[2] || '', // C
+// ... existing code ... -->
                     academicYear: row[3] || '', // D
                     photoUrl: row[26] || null // AA
                 })).filter(s => s.id && s.photoUrl); // Filter out students without ID or photo
                 
                 loadingMessage.textContent = 'កំពុងវិភាគរូបថតនិស្សិត...';
-                let labeledFaceDescriptors = [];
+                
+                // --- OPTIMIZATION START: វិភាគរូបថតច្រើនក្នុងពេលតែមួយ ---
+                const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
                 let count = 0;
-                for (const student of studentData) {
-                    count++;
-                    loadingProgress.textContent = `(${count}/${studentData.length}) - ${student.fullName}`;
+
+                const promises = studentData.map(async (student) => {
                     try {
                         const img = await faceapi.fetchImage(getCorsProxyUrl(student.photoUrl));
-                        const detections = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                        const detections = await faceapi.detectSingleFace(img, detectorOptions).withFaceLandmarks().withFaceDescriptor();
+                        
+                        // Update progress concurrently
+                        count++;
+                        loadingProgress.textContent = `(${count}/${studentData.length}) - ${student.fullName}`;
+
                         if (detections) {
-                            labeledFaceDescriptors.push(new faceapi.LabeledFaceDescriptors(
+                            return new faceapi.LabeledFaceDescriptors(
                                 student.id,
                                 [detections.descriptor]
-                            ));
+                            );
                         }
+                        return null;
                     } catch (e) {
                         console.error(`Could not process image for ${student.fullName}: ${e}`);
+                        // Still update progress even on error
+                        count++;
+                        loadingProgress.textContent = `(${count}/${studentData.length}) - ${student.fullName}`;
+                        return null;
                     }
-                }
+                });
+
+                const results = await Promise.all(promises);
+                const labeledFaceDescriptors = results.filter(descriptor => descriptor !== null);
+                // --- OPTIMIZATION END ---
                 
                 if(labeledFaceDescriptors.length > 0){
                     faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.5); // 0.5 is the distance threshold
@@ -286,7 +279,9 @@
             detectionInterval = setInterval(async () => {
                 if (!faceMatcher || !isScanning) return;
 
-                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+                // --- OPTIMIZATION: ប្រើ Options ដែលបានកំណត់ដើម្បីឱ្យការស្កេនលឿនជាងមុន ---
+                const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
+                const detections = await faceapi.detectAllFaces(video, detectorOptions).withFaceLandmarks().withFaceDescriptors();
                 const displaySize = { width: video.clientWidth, height: video.clientHeight };
                 faceapi.matchDimensions(canvas, displaySize);
                 
@@ -363,3 +358,4 @@
     </script>
 </body>
 </html>
+
