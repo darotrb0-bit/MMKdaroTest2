@@ -151,10 +151,17 @@
         }
 
         #video-container::after {
-            content: ''; position: absolute; top: -100%; left: 0;
-            width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 48%, rgba(0, 255, 255, 0.7) 50%, rgba(255,255,255,0.1) 52%, rgba(255,255,255,0) 100%);
-            animation: scan-effect 3s linear infinite; z-index: 2;
+            content: '';
+            position: absolute;
+            left: 5%;
+            width: 90%;
+            top: 0;
+            height: 4px;
+            background: var(--info-color);
+            box-shadow: 0 0 12px var(--info-color), 0 0 7px var(--info-color);
+            border-radius: 4px;
+            animation: scan-effect 2.5s ease-in-out infinite alternate;
+            z-index: 4;
         }
         #scan-message-overlay {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -199,7 +206,8 @@
             100% { box-shadow: 0 0 0 25px rgba(13, 202, 240, 0); }
         }
         @keyframes scan-effect {
-            0% { transform: translateY(0%); } 100% { transform: translateY(200%); }
+            from { top: 0%; }
+            to { top: calc(100% - 4px); }
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes spin-around { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -348,6 +356,7 @@
             let isScanningPaused = false;
             let modalConfirmCallback = null;
             let processingIds = new Set();
+            let audioCtx;
 
 
             // --- HELPER & UI FUNCTIONS ---
@@ -358,6 +367,27 @@
 
             const getBreaksFromStorage = () => JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
             const saveBreaksToStorage = (breaks) => localStorage.setItem(STORAGE_KEY, JSON.stringify(breaks));
+
+            const playAlertSound = () => {
+                try {
+                    if (!audioCtx) {
+                        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.01);
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    oscillator.start(audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.2);
+                    oscillator.stop(audioCtx.currentTime + 0.2);
+                } catch (e) {
+                    console.error("Could not play sound:", e);
+                }
+            };
 
             const speak = (text) => {
                 if ('speechSynthesis' in window && window.speechSynthesis.getVoices().length > 0) {
@@ -569,7 +599,7 @@
                             } else {
                                 matchBuffer = [];
                             }
-                        }, 500);
+                        }, 250);
                     });
 
                 } catch (err) {
@@ -693,8 +723,9 @@
                     const newTimestamps = JSON.parse(localStorage.getItem(LAST_ACTION_STORAGE_KEY)) || {};
                     newTimestamps[employeeId] = new Date().getTime();
                     localStorage.setItem(LAST_ACTION_STORAGE_KEY, JSON.stringify(newTimestamps));
-
-                    const successMessage = `បុគ្គលិក ${selectedEmployee.name} បានស្កេនចេញត្រឹមត្រូវ`;
+                    
+                    playAlertSound();
+                    const successMessage = `បុគ្គលិក ${selectedEmployee.name} បានស្កេនចេញ`;
                     speak(successMessage);
                     if(isLiveModeActive) showScanOverlayMessage(successMessage);
                     employeeInput.value = '';
@@ -731,7 +762,9 @@
                 const updatedBreaks = breaks.filter(b => b.id !== employeeId);
                 saveBreaksToStorage(updatedBreaks);
                 renderBreakList();
-                speak(`បុគ្គលិក ${breakEntry.name} បានស្កេនចូល, កំពុងរក្សាទុក`);
+                playAlertSound();
+                const checkInMessage = `បុគ្គលិក ${breakEntry.name} បានស្កេនចូល`;
+                speak(checkInMessage);
                 if(isLiveModeActive) showScanOverlayMessage(`បានស្កេនចូល: ${breakEntry.name}`);
 
                 try {
@@ -780,7 +813,7 @@
             };
             
             const saveData = async (data) => {
-                 showLoader(true, 'កំពុងរក្សាទុក...');
+                 // No loader for optimistic UI
                  try {
                      const response = await fetch(WRITE_URL, {
                          method: 'POST',
@@ -796,8 +829,6 @@
                  } catch (error) { 
                      console.error('Save failed:', error); 
                      return false; 
-                 } finally { 
-                     showLoader(false); 
                  }
             };
 
