@@ -290,12 +290,10 @@
             const CONSECUTIVE_MATCHES_REQUIRED = 3;
 
             // --- DOM ELEMENTS ---
-            const mainTitle = document.querySelector('header h1');
             const employeeInput = document.getElementById('employee-input');
             const employeeDatalist = document.getElementById('employee-list-data');
             const currentDateDisplay = document.getElementById('current-date');
             const recordsContainer = document.getElementById('employee-records-container');
-            const filterInput = document.getElementById('filter-input');
             const loader = document.getElementById('loader');
             const loaderMessage = document.getElementById('loader-message');
             const scanFaceBtn = document.getElementById('scan-face-btn');
@@ -598,7 +596,7 @@
                 breaks.push(newBreak);
                 saveBreaksToStorage(breaks);
                 renderBreakList();
-                speak(`${selectedEmployee.id} បានឆែកចេញត្រឹមត្រូវ`);
+                speak(`បុគ្គលិក ${selectedEmployee.name} បាន Check out ត្រឹមត្រូវ`);
                 employeeInput.value = '';
             };
 
@@ -628,7 +626,7 @@
                     const updatedBreaks = breaks.filter(b => b.id !== employeeId);
                     saveBreaksToStorage(updatedBreaks);
                     renderBreakList();
-                    speak(`${breakEntry.id} បានឆែកចូលមកវិញត្រឹមត្រូវ`);
+                    speak(`បុគ្គលិក ${breakEntry.name} បាន Check In ត្រឹមត្រូវ`);
                 } else {
                      alert('រក្សាទុកទិន្នន័យមិនสำเร็จ! សូមព្យាយាមម្តងទៀត។');
                 }
@@ -671,6 +669,7 @@
                         <p class="overdue-status"></p>
                     </div>
                     <div class="employee-actions">
+                        <button class="btn btn-delete">លុប</button>
                         <button class="btn btn-check-in">ចូល</button> 
                     </div>
                 `;
@@ -678,6 +677,15 @@
 
                 const checkInBtn = recordDiv.querySelector('.btn-check-in');
                 checkInBtn.addEventListener('click', () => handleCheckIn(breakEntry.id));
+
+                const deleteBtn = recordDiv.querySelector('.btn-delete');
+                deleteBtn.addEventListener('click', () => {
+                    if (confirm(`តើអ្នកពិតជាចង់លុប "${breakEntry.name}" មែនទេ?`)) {
+                        const breaks = getBreaksFromStorage().filter(b => b.id !== breakEntry.id);
+                        saveBreaksToStorage(breaks);
+                        renderBreakList();
+                    }
+                });
             };
 
             // --- MAIN INITIALIZATION ---
