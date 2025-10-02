@@ -215,7 +215,7 @@
             <!-- Search Form -->
             <div class="space-y-4">
                 <div class="flex space-x-2">
-                    <input type="text" id="studentIdInput" class="hacker-input flex-grow text-sm rounded-lg block w-full p-2.5 font-mono" placeholder="ID: DI0001..." required>
+                    <input type="text" id="studentIdInput" class="hacker-input flex-grow text-sm rounded-lg block w-full p-2.5 font-mono" placeholder="ID / ឈ្មោះខ្មែរ / ឈ្មោះឡាតាំង..." required>
                     <button id="searchButton" class="hacker-btn font-medium rounded-lg text-sm px-5 py-2.5 text-center"><i class="fa fa-search"></i></button>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
@@ -320,8 +320,8 @@
 
     // --- Configuration & DOM Elements ---
     const API_KEY = 'AIzaSyC6E9ON7DsgkMZEc6obtWehyqzGWwd_EII'; // WARNING: Exposing API keys on the client-side is a security risk.
-    const SHEET_ID = '1_Kgl8UQXRsVATt_BOHYQjVWYKkRIBA12R-qnsBoSUzc';
-    const SHEET_NAME = 'បញ្ជឺឈ្មោះរួម';
+    const SHEET_ID = '1eRyPoifzyvB4oBmruNyXcoKMKPRqjk6xDD6-bPNW6pc';
+    const SHEET_NAME = 'DIList';
     const DATA_RANGE = 'C9:AA';
     const FACEAPI_MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
     const TINY_FACE_DETECTOR_OPTIONS = new faceapi.TinyFaceDetectorOptions({ inputSize: 224 });
@@ -545,21 +545,46 @@
         });
     }
 
-    function findStudentById(idToSearch) {
-        if (!idToSearch) {
-            typewriterEffect(statusMessage, 'កំហុសបញ្ជា: សូមបញ្ចូលអត្តលេខ');
+    function searchStudent(query) {
+        if (!query) {
+            typewriterEffect(statusMessage, 'កំហុសបញ្ជា: សូមបញ្ចូល ID ឬ ឈ្មោះ');
             playSound(errorSound, 'C2', '4n');
             return;
         }
-        const targetId = idToSearch.trim().toUpperCase();
-        const studentRow = studentDataCache.find(row => row[COL_INDEX.ID] && row[COL_INDEX.ID].toUpperCase() === targetId);
+
+        const normalizedQuery = query.replace(/\s+/g, '').toUpperCase();
+        const normalizedQueryKhmer = query.replace(/\s+/g, ''); // Khmer doesn't have case
+
+        const studentRow = studentDataCache.find(row => {
+            if (!row) return false;
+
+            // 1. Check by ID
+            const studentId = (row[COL_INDEX.ID] || '').toUpperCase();
+            if (studentId === normalizedQuery) {
+                return true;
+            }
+
+            // 2. Check by Latin Name (normalized)
+            const studentNameLatin = (row[COL_INDEX.NAME_LATIN] || '').replace(/\s+/g, '').toUpperCase();
+            if (studentNameLatin === normalizedQuery) {
+                return true;
+            }
+
+            // 3. Check by Khmer Name (normalized)
+            const studentNameKhmer = (row[COL_INDEX.NAME_KHMER] || '').replace(/\s+/g, '');
+            if (studentNameKhmer === normalizedQueryKhmer) {
+                return true;
+            }
+            
+            return false;
+        });
 
         if (studentRow) {
-            typewriterEffect(statusMessage, `ស្វែងរក​ឃើញ: កំពុងបង្ហាញទិន្នន័យសម្រាប់ ${targetId}`);
-            // Sound is now played inside displayStudentInfo
+            const studentIdentifier = studentRow[COL_INDEX.ID] || studentRow[COL_INDEX.NAME_LATIN];
+            typewriterEffect(statusMessage, `ស្វែងរក​ឃើញ: កំពុងបង្ហាញទិន្នន័យសម្រាប់ ${studentIdentifier}`);
             displayStudentInfo(studentRow);
         } else {
-            typewriterEffect(statusMessage, `ស្វែងរក​មិន​ឃើញ: អត្តលេខ "${idToSearch}" មិនមានក្នុងប្រព័ន្ធ`);
+            typewriterEffect(statusMessage, `ស្វែងរក​មិន​ឃើញ: "${query}" មិនមានក្នុងប្រព័ន្ធ`);
             playSound(errorSound, 'E2', '4n');
         }
     }
@@ -660,12 +685,12 @@
     // --- Master Event Listeners ---
     searchButton.addEventListener('click', () => {
         playSound(actionSound, 'C4', '16n');
-        findStudentById(studentIdInput.value);
+        searchStudent(studentIdInput.value);
     });
     studentIdInput.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') {
             playSound(actionSound, 'C4', '16n');
-            findStudentById(studentIdInput.value);
+            searchStudent(studentIdInput.value);
         }
     });
     scanFaceButton.addEventListener('click', () => {
